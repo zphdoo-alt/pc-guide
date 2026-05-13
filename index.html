@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PC 장애 조치 가이드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F5F5F7;--bgc:#FFF;--bgh:#1A1A2E;--tp:#1A1A2E;--ts:#5A5A72;--tm:#9090A0;
+--bd:#E4E4EC;--ac:#4A6CF7;--al:#EEF1FE;--ag:rgba(74,108,247,.12);
+--dg:#EF4444;--dl:#FEF2F2;--sc:#10B981;--sl:#ECFDF5;--wn:#F59E0B;
+--sh:0 4px 12px rgba(0,0,0,.06);--r:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+--bg:#0D0D1A;--bgc:#1A1A2E;--bgh:#12122B;--tp:#E8E8F0;--ts:#A0A0B8;--tm:#6A6A80;
+--bd:#2A2A40;--ac:#6B8AFF;--al:#1E2248;--ag:rgba(107,138,255,.15);
+--dl:#2D1515;--sl:#0D2D20;--sh:0 4px 12px rgba(0,0,0,.3);
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--tp);min-height:100vh}
+.screen{display:none}.screen.active{display:block}
+
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-card{background:var(--bgc);border:1px solid var(--bd);border-radius:20px;padding:36px 28px;max-width:360px;width:100%;box-shadow:var(--sh);text-align:center}
+.login-icon{width:64px;height:64px;background:var(--al);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px}
+.login-card h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.login-card .sub{font-size:13px;color:var(--tm);margin-bottom:20px}
+.field{width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:var(--r);font-family:inherit;font-size:14px;color:var(--tp);background:var(--bg);outline:none;margin-bottom:8px;transition:border-color .2s}
+.field:focus{border-color:var(--ac)}.field::placeholder{color:var(--tm)}
+.btn{width:100%;padding:12px;border:none;border-radius:var(--r);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.9}
+.btn-p{background:var(--ac);color:#fff}
+.btn-d{background:var(--dg);color:#fff}
+.btn-o{background:transparent;border:1.5px solid var(--bd);color:var(--ts);font-weight:500}
+.btn-sm{padding:9px 14px;font-size:12px;border-radius:var(--r);border:none;font-family:inherit;font-weight:600;cursor:pointer}
+.err{color:var(--dg);font-size:12px;margin-top:6px;display:none;line-height:1.5}.err.show{display:block}
+.login-ft{font-size:11px;color:var(--tm);margin-top:16px;line-height:1.6}
+
+/* Header */
+.hdr{background:var(--bgh);color:#fff;padding:14px 16px 22px;position:relative;overflow:hidden}
+.hdr::after{content:'';position:absolute;bottom:-18px;left:-10%;width:120%;height:36px;background:var(--bg);border-radius:50% 50% 0 0}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.hdr-l{display:flex;align-items:center;gap:8px}
+.hdr-ic{width:32px;height:32px;background:rgba(255,255,255,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.hdr-l h1{font-size:17px;font-weight:600}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.5);margin-left:40px;margin-top:2px}
+.hdr-r{display:flex;gap:5px;align-items:center}
+.hdr-btn{background:rgba(255,255,255,.1);border:none;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px}
+.hdr-btn:hover{background:rgba(255,255,255,.2)}
+.u-pill{font-size:10px;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);padding:2px 8px;border-radius:14px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dept-pill{font-size:9px;color:rgba(255,255,255,.4);background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px}
+
+/* Search */
+.srch-w{padding:0 16px;margin-top:-8px;position:relative;z-index:10}
+.srch{background:var(--bgc);border-radius:var(--r);box-shadow:var(--sh);display:flex;align-items:center;padding:0 14px;border:1.5px solid transparent}
+.srch:focus-within{border-color:var(--ac)}
+.srch svg{flex-shrink:0;color:var(--tm);width:16px;height:16px}
+.srch input{flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:var(--tp);padding:12px 10px}
+.srch input::placeholder{color:var(--tm)}
+.sc{display:none;background:var(--bd);border:none;width:20px;height:20px;border-radius:50%;font-size:11px;color:var(--ts);cursor:pointer;align-items:center;justify-content:center}.sc.show{display:flex}
+
+.stats{display:flex;gap:6px;padding:12px 16px 4px;overflow-x:auto;flex-wrap:nowrap}.stats::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;background:var(--bgc);border:1px solid var(--bd);border-radius:14px;padding:4px 10px;font-size:11px;font-weight:500;color:var(--ts);white-space:nowrap}
+.chip b{color:var(--ac);font-weight:600}
+
+.content{padding:6px 16px 100px}
+.sec-t{font-size:14px;font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:6px}
+.sec-t .cnt{font-size:11px;font-weight:500;color:var(--tm);background:var(--al);padding:2px 7px;border-radius:8px}
+
+/* Cat Grid */
+.cg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:transform .12s;position:relative}
+.cc:active{transform:scale(.97)}
+.cc .ci{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px}
+.cc .cn{font-size:13px;font-weight:600;margin-bottom:2px}
+.cc .ct{font-size:11px;color:var(--tm)}
+.cc .cd{position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%}
+.cc.locked{opacity:.35;pointer-events:none}
+.cc.locked::after{content:'🔒';position:absolute;top:10px;right:10px;font-size:12px}
+
+/* Detail */
+.det{display:none}.det.active{display:block}
+.det-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.bk{background:var(--bgc);border:1px solid var(--bd);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ts);flex-shrink:0;font-size:15px}
+.bk:active{background:var(--bd)}
+.dt h2{font-size:16px;font-weight:600}.dt span{font-size:11px;color:var(--tm)}
+
+/* Issue */
+.ic{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
+.ic.open{box-shadow:var(--sh)}
+.ih{padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.ih:active{background:var(--al)}
+.sv{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sh{background:#EF4444}.sm{background:#F59E0B}.sl{background:#10B981}
+.ih .nm{flex:1;font-size:13px;font-weight:500;line-height:1.4}
+.ar{flex-shrink:0;font-size:12px;color:var(--tm);transition:transform .2s}
+.ic.open .ar{transform:rotate(180deg)}
+.ib{display:none;padding:0 14px 12px;border-top:1px solid var(--bd)}
+.ic.open .ib{display:block;padding-top:10px}
+.tg{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tgi{font-size:10px;font-weight:500;padding:2px 7px;border-radius:14px}
+.thw{background:#FEF3C7;color:#92400E}.tsw{background:#EDE9FE;color:#5B21B6}.tnt{background:#DBEAFE;color:#1E40AF}
+@media(prefers-color-scheme:dark){.thw{background:#422006;color:#FCD34D}.tsw{background:#2E1065;color:#C4B5FD}.tnt{background:#172554;color:#93C5FD}}
+.sli{list-style:none}
+.si{display:flex;gap:10px;padding:5px 0;position:relative}
+.si:not(:last-child)::after{content:'';position:absolute;left:11px;top:26px;width:1.5px;height:calc(100% - 12px);background:var(--bd)}
+.sn{width:22px;height:22px;background:var(--al);color:var(--ac);font-size:10px;font-weight:600;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1}
+.st{font-size:12px;line-height:1.6;color:var(--ts);padding-top:2px}.st b{color:var(--tp);font-weight:500}
+.tip{background:var(--al);border-radius:8px;padding:7px 10px;margin-top:6px;font-size:11px;line-height:1.5;color:var(--ac);display:flex;gap:6px}
+
+.sr{display:none}.sr.active{display:block}
+.se{text-align:center;padding:50px 20px;color:var(--tm);font-size:13px}
+
+/* Admin */
+.ap{display:none}.ap.active{display:block}
+.atabs{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.atabs::-webkit-scrollbar{display:none}
+.atab{flex-shrink:0;padding:8px 14px;border:1px solid var(--bd);border-radius:var(--r);background:var(--bgc);font-family:inherit;font-size:12px;font-weight:500;color:var(--ts);cursor:pointer;white-space:nowrap}
+.atab.active{background:var(--ac);color:#fff;border-color:var(--ac)}
+
+/* User cards */
+.uc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ua{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.ui{flex:1;min-width:0}
+.un{font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.ur{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:500}
+.ura{background:var(--al);color:var(--ac)}.uru{background:var(--bg);color:var(--tm)}
+.ud-tag{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:500;background:var(--sl);color:var(--sc)}
+.uid{font-size:10px;color:var(--tm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uact{display:flex;gap:3px}
+.ub{background:var(--bg);border:1px solid var(--bd);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ts);font-size:12px}
+.ub:hover{background:var(--bd)}.ub.dl{color:var(--dg)}.ub.dl:hover{background:var(--dl)}
+
+/* Forms */
+.af{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.af h3{font-size:13px;font-weight:600;margin-bottom:10px}
+.fr{margin-bottom:6px}.fr label{font-size:11px;color:var(--ts);display:block;margin-bottom:3px}
+.fr select{width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:var(--r);font-family:inherit;font-size:13px;color:var(--tp);background:var(--bg);outline:none}
+.fb{display:flex;gap:6px;margin-top:10px}
+
+/* Dept permission */
+.perm-grid{margin-top:8px}
+.perm-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.perm-row:last-child{border-bottom:none}
+.perm-cat{flex:1;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px}
+.perm-cat .picon{font-size:16px}
+.perm-checks{display:flex;gap:4px;flex-wrap:wrap}
+.perm-chip{font-size:10px;padding:3px 8px;border-radius:8px;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--ts);transition:all .15s;user-select:none}
+.perm-chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.perm-chip:hover{border-color:var(--ac)}
+
+/* Checkbox toggle */
+.chk-row{display:flex;align-items:center;gap:6px;padding:6px 0;cursor:pointer;font-size:12px;color:var(--ts)}
+.chk-row input{accent-color:var(--ac);width:16px;height:16px}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bgh);color:#fff;padding:9px 18px;border-radius:var(--r);font-size:12px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.2);opacity:0;transition:all .3s;z-index:500;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Modal */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.mo.show{display:flex}
+.ml{background:var(--bgc);border-radius:16px;padding:22px;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center}
+.ml h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.ml p{font-size:12px;color:var(--ts);margin-bottom:16px;line-height:1.6}
+.ml .mbs{display:flex;gap:6px}.ml .mbs .btn{flex:1}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.an{animation:fadeUp .2s ease-out both}
+@media(min-width:480px){.cg{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:768px){body{display:flex;justify-content:center}.app{max-width:480px;width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LOGIN -->
+<div class="screen active" id="loginScreen">
+<div class="login-wrap"><div class="login-card">
+  <div class="login-icon">🖥️</div>
+  <h1>PC 장애 조치 가이드</h1>
+  <p class="sub">회사 직원 전용 시스템입니다</p>
+  <input type="text" class="field" id="loginId" placeholder="아이디" onkeydown="if(event.key==='Enter')doLogin()">
+  <input type="password" class="field" id="loginPw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
+  <button class="btn btn-p" onclick="doLogin()">로그인</button>
+  <div class="err" id="loginErr"></div>
+  <div class="login-ft">관리자: admin / admin1234<br>테스트 직원: kim / 1234 (전산팀) · lee / 1234 (일반)</div>
+</div></div>
+</div>
+
+<!-- MAIN -->
+<div class="screen" id="mainScreen">
+<header class="hdr">
+  <div class="hdr-row">
+    <div class="hdr-l"><div class="hdr-ic">🖥️</div><h1>PC 장애 조치</h1></div>
+    <div class="hdr-r">
+      <span class="u-pill" id="userPill"></span>
+      <span class="dept-pill" id="deptPill"></span>
+      <button class="hdr-btn" id="adminBtn" onclick="showAdmin()" style="display:none">⚙️</button>
+      <button class="hdr-btn" onclick="showPwChange()">🔑</button>
+      <button class="hdr-btn" onclick="doLogout()">🚪</button>
+    </div>
+  </div>
+  <div class="hdr-sub" id="hdrSub">카테고리를 선택하거나 증상을 검색하세요</div>
+</header>
+
+<div class="srch-w" id="srchWrap">
+  <div class="srch">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="sInput" placeholder="증상 검색" oninput="doSearch(this.value)">
+    <button class="sc" id="sClear" onclick="clrSearch()">✕</button>
+  </div>
+</div>
+
+<div class="stats" id="statsBar">
+  <div class="chip">전체 <b id="totalCnt">0</b>건</div>
+  <div class="chip">열람가능 <b id="accessCnt">0</b>건</div>
+</div>
+
+<div class="content">
+  <div id="homeView">
+    <div class="sec-t">장애 유형별 카테고리</div>
+    <div class="cg" id="catGrid"></div>
+  </div>
+  <div class="det" id="detView">
+    <div class="det-h"><button class="bk" onclick="goHome()">◀</button><div class="dt"><h2 id="dT"></h2><span id="dC"></span></div></div>
+    <div id="dCards"></div>
+  </div>
+  <div class="sr" id="sView">
+    <div class="sec-t">검색 결과 <span class="cnt" id="sCnt">0건</span></div>
+    <div id="sCards"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="ap" id="adminPanel">
+    <div class="det-h"><button class="bk" onclick="hideAdmin()">◀</button><div class="dt"><h2>⚙️ 관리자 설정</h2><span>사용자·부서·권한 관리</span></div></div>
+    <div class="atabs" id="aTabs">
+      <button class="atab active" onclick="aTab('users',this)">직원 관리</button>
+      <button class="atab" onclick="aTab('adduser',this)">직원 추가</button>
+      <button class="atab" onclick="aTab('depts',this)">부서 관리</button>
+      <button class="atab" onclick="aTab('perms',this)">카테고리 권한</button>
+    </div>
+    <div id="aUsers"></div>
+    <div id="aAddUser" style="display:none"></div>
+    <div id="aDepts" style="display:none"></div>
+    <div id="aPerms" style="display:none"></div>
+  </div>
+
+  <!-- PW Change -->
+  <div class="ap" id="pwPanel">
+    <div class="det-h"><button class="bk" onclick="goHome()">◀</button><div class="dt"><h2>🔑 비밀번호 변경</h2></div></div>
+    <div class="af">
+      <div class="fr"><label>현재 비밀번호</label><input type="password" class="field" id="curPw"></div>
+      <div class="fr"><label>새 비밀번호</label><input type="password" class="field" id="newPw"></div>
+      <div class="fr"><label>새 비밀번호 확인</label><input type="password" class="field" id="newPw2"></div>
+      <button class="btn btn-p" onclick="changePw()" style="margin-top:6px">변경하기</button>
+      <div class="err" id="pwErr"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="mo" id="delModal"><div class="ml"><h3>직원 삭제</h3><p id="delMsg"></p><div class="mbs"><button class="btn btn-o" onclick="closeModal()">취소</button><button class="btn btn-d" onclick="confirmDel()">삭제</button></div></div></div>
+
+</div>
+<script>
+// ══════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════
+const DEF_DEPTS = [
+  {id:'it', name:'전산팀', color:'#4A6CF7'},
+  {id:'security', name:'보안팀', color:'#06B6D4'},
+  {id:'infra', name:'인프라팀', color:'#10B981'},
+  {id:'general', name:'일반', color:'#9090A0'}
+];
+
+// dept→categories mapping. key=dept id, val=array of cat keys
+const DEF_PERMS = {
+  it: ['printer','network','bluescreen','boot','software','monitor','keyboard','security','storage','sound'],
+  security: ['security','network','software'],
+  infra: ['network','boot','storage','monitor'],
+  general: ['printer','software','keyboard','sound']
+};
+
+const DEF_USERS = [
+  {id:'admin',name:'관리자',pw:'admin1234',role:'admin',dept:'it',created:'2026-05-08'},
+  {id:'admin2',name:'관리자2',pw:'admin1234',role:'admin',dept:'it',created:'2026-05-08'},
+  {id:'kim',name:'김전산',pw:'1234',role:'user',dept:'it',created:'2026-05-08'},
+  {id:'lee',name:'이사원',pw:'1234',role:'user',dept:'general',created:'2026-05-08'},
+  {id:'park',name:'박보안',pw:'1234',role:'user',dept:'security',created:'2026-05-08'},
+  {id:'choi',name:'최인프라',pw:'1234',role:'user',dept:'infra',created:'2026-05-08'}
+];
+
+const DB={
+  printer:{name:'프린터',icon:'🖨️',color:'#F97316',items:[
+    {title:'프린터 인쇄가 안 됨',severity:'high',tags:['HW'],steps:['프린터 전원 ON 및 케이블 연결 확인','<b>제어판 → 장치 및 프린터</b> 기본 프린터 확인','<b>Print Spooler 재시작:</b> services.msc → 중지 → PRINTERS 폴더 삭제 → 재시작','제조사 홈페이지에서 드라이버 재설치'],tip:'대부분 Print Spooler 재시작으로 해결'},
+    {title:'용지 걸림 (Paper Jam)',severity:'mid',tags:['HW'],steps:['프린터 전원 끄고 케이블 분리','커버 열어 용지를 양손으로 천천히 제거','내부 종이 조각 확인','용지함 정렬 후 재장착']},
+    {title:'인쇄물 흐림/줄 생김',severity:'mid',tags:['HW'],steps:['토너/잉크 잔량 확인','<b>헤드 청소</b> 실행 (2~3회)','인쇄 품질 "고품질" 설정','토너/잉크 교체']},
+    {title:'네트워크 프린터 검색 안됨',severity:'mid',tags:['HW','NET'],steps:['프린터 IP 주소 확인','ping으로 통신 확인','같은 네트워크 대역 확인','TCP/IP 포트로 수동 추가']}
+  ]},
+  network:{name:'네트워크',icon:'🌐',color:'#3B82F6',items:[
+    {title:'인터넷 연결 안됨',severity:'high',tags:['NET'],steps:['LAN 케이블 연결/LED 확인','<b>ipconfig /release → /renew</b>','네트워크 어댑터 재시작','스위치/공유기 리부팅 요청'],tip:'대부분 LAN 케이블 접촉 불량'},
+    {title:'특정 사이트만 접속 불가',severity:'mid',tags:['NET','SW'],steps:['다른 브라우저 시도','<b>ipconfig /flushdns</b>','DNS 8.8.8.8로 변경','보안 프로그램 차단 확인']},
+    {title:'공유 폴더 접근 불가',severity:'mid',tags:['NET','SW'],steps:['ping으로 통신 확인','네트워크 검색 켜기','자격 증명 삭제 후 재접속','net use로 수동 연결']},
+    {title:'VPN 연결 실패',severity:'mid',tags:['NET','SW'],steps:['VPN 클라이언트 재실행','인터넷 연결 정상 확인','서버 주소/인증 정보 확인','방화벽 VPN 포트 확인']}
+  ]},
+  bluescreen:{name:'블루스크린',icon:'🟦',color:'#8B5CF6',items:[
+    {title:'IRQL_NOT_LESS_OR_EQUAL',severity:'high',tags:['HW','SW'],steps:['최근 드라이버/프로그램 제거','<b>mdsched.exe</b> 메모리 진단','안전 모드에서 드라이버 롤백','RAM 교체 테스트'],tip:'90% 메모리 또는 드라이버 문제'},
+    {title:'KERNEL_DATA_INPAGE_ERROR',severity:'high',tags:['HW'],steps:['<b>chkdsk /f /r</b> 실행','SATA 케이블 재연결','이벤트 뷰어 Disk 오류 확인','CrystalDiskInfo 건강 확인']},
+    {title:'CRITICAL_PROCESS_DIED',severity:'high',tags:['SW'],steps:['안전 모드에서 프로그램 제거','<b>sfc /scannow</b>','DISM RestoreHealth','시스템 복원/초기화']}
+  ]},
+  boot:{name:'부팅/전원',icon:'⚡',color:'#EF4444',items:[
+    {title:'PC 전원 안 켜짐',severity:'high',tags:['HW'],steps:['전원 케이블 연결 확인','멀티탭/다른 콘센트 테스트','파워서플라이 스위치 확인','10초 방전 후 재시도']},
+    {title:'부팅 중 멈춤/무한 로딩',severity:'high',tags:['HW','SW'],steps:['F8 안전 모드 진입','최근 프로그램/드라이버 제거','시스템 복원','Windows USB 시동 복구']},
+    {title:'갑자기 PC 꺼짐/재부팅',severity:'high',tags:['HW'],steps:['CPU 온도 확인 (HWMonitor)','내부 먼지 제거/CPU 팬 확인','외장GPU 임시 분리 테스트','Kernel-Power 41 확인'],tip:'Kernel-Power 41 반복 시 파워 교체'}
+  ]},
+  software:{name:'소프트웨어',icon:'💻',color:'#10B981',items:[
+    {title:'프로그램 응답 없음',severity:'mid',tags:['SW'],steps:['Ctrl+Shift+Esc 강제 종료','재실행/업데이트 확인','호환성 모드 실행','제거 후 재설치']},
+    {title:'Windows 업데이트 실패',severity:'mid',tags:['SW'],steps:['문제 해결사 실행','SoftwareDistribution 삭제','DISM RestoreHealth','sfc /scannow']},
+    {title:'PC 속도 느림',severity:'low',tags:['SW','HW'],steps:['작업 관리자 리소스 확인','시작 프로그램 정리','디스크 정리','RAM 증설/SSD 교체 검토'],tip:'디스크 100%면 SSD 교체가 가장 효과적'}
+  ]},
+  monitor:{name:'모니터/화면',icon:'🖥️',color:'#EC4899',items:[
+    {title:'화면 안 나옴',severity:'high',tags:['HW'],steps:['모니터 전원/케이블 확인','다른 포트로 변경','다른 모니터 테스트','내장/외장 그래픽 전환']},
+    {title:'화면 깜빡임',severity:'mid',tags:['HW','SW'],steps:['주사율 60Hz 확인','디스플레이 드라이버 업데이트','케이블 교체','전자기기 간섭 확인']}
+  ]},
+  keyboard:{name:'키보드/마우스',icon:'⌨️',color:'#F59E0B',items:[
+    {title:'키보드/마우스 인식 안됨',severity:'high',tags:['HW'],steps:['다른 USB 포트 연결','다른 기기로 테스트','USB 컨트롤러 드라이버 재설치','BIOS USB Legacy 확인']},
+    {title:'무선 마우스/키보드 끊김',severity:'mid',tags:['HW'],steps:['배터리 교체','수신기 다른 포트 (2.0 권장)','무선 기기 간섭 확인','재페어링']}
+  ]},
+  security:{name:'보안/바이러스',icon:'🛡️',color:'#06B6D4',items:[
+    {title:'악성코드 감염 의심',severity:'high',tags:['SW'],steps:['<b>즉시 네트워크 분리</b>','백신 전체 검사','안전 모드 추가 검사','보안 담당자 보고'],tip:'첫 번째: 네트워크 분리!'},
+    {title:'랜섬웨어 감염',severity:'high',tags:['SW'],steps:['<b>즉시 LAN 분리</b>','<b>전원 끄지 말 것</b>','보안 담당자 즉시 보고','PC 격리/포렌식 대기'],tip:'전원 끄면 복구 가능성 낮아짐'}
+  ]},
+  storage:{name:'저장장치',icon:'💾',color:'#6366F1',items:[
+    {title:'USB 인식 안됨',severity:'mid',tags:['HW'],steps:['다른 포트 연결','드라이버 제거 후 재연결','디스크 관리에서 드라이브 문자 할당','다른 PC 테스트']},
+    {title:'디스크 공간 부족',severity:'mid',tags:['SW'],steps:['디스크 정리','임시 파일 삭제','다운로드/휴지통 정리','불필요 프로그램 제거']}
+  ]},
+  sound:{name:'소리/오디오',icon:'🔊',color:'#14B8A6',items:[
+    {title:'소리가 안 남',severity:'mid',tags:['HW','SW'],steps:['음소거/볼륨 확인','출력 장치 설정 확인','Windows Audio 서비스 확인','사운드 드라이버 재설치']}
+  ]}
+};
+
+// ══════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════
+function g(k,d){try{const v=JSON.parse(localStorage.getItem('pcg_'+k));return v||d;}catch(e){return d;}}
+function s(k,v){localStorage.setItem('pcg_'+k,JSON.stringify(v));}
+function getUsers(){const u=g('users',null);if(!u){s('users',DEF_USERS);return DEF_USERS;}return u;}
+function saveUsers(u){s('users',u);}
+function getDepts(){const d=g('depts',null);if(!d){s('depts',DEF_DEPTS);return DEF_DEPTS;}return d;}
+function saveDepts(d){s('depts',d);}
+function getPerms(){const p=g('perms',null);if(!p){s('perms',DEF_PERMS);return DEF_PERMS;}return p;}
+function savePerms(p){s('perms',p);}
+function getSess(){try{return JSON.parse(sessionStorage.getItem('pcg_sess'));}catch(e){return null;}}
+function setSess(v){sessionStorage.setItem('pcg_sess',JSON.stringify(v));}
+function clrSess(){sessionStorage.removeItem('pcg_sess');}
+
+let CU=null, delTgt=null;
+
+// ══════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════
+function doLogin(){
+  const id=document.getElementById('loginId').value.trim(),pw=document.getElementById('loginPw').value,er=document.getElementById('loginErr');
+  if(!id||!pw){er.textContent='아이디와 비밀번호를 입력하세요.';er.classList.add('show');return;}
+  const u=getUsers().find(x=>x.id===id&&x.pw===pw);
+  if(!u){er.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';er.classList.add('show');return;}
+  er.classList.remove('show');CU=u;setSess({id:u.id});showMain();
+}
+function doLogout(){clrSess();CU=null;document.getElementById('mainScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');document.getElementById('loginId').value='';document.getElementById('loginPw').value='';}
+function showMain(){
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.add('active');
+  document.getElementById('userPill').textContent=CU.name;
+  const dept=getDepts().find(d=>d.id===CU.dept);
+  document.getElementById('deptPill').textContent=dept?dept.name:'';
+  document.getElementById('adminBtn').style.display=CU.role==='admin'?'flex':'none';
+  goHome();
+}
+function checkSess(){const ss=getSess();if(ss){const u=getUsers().find(x=>x.id===ss.id);if(u){CU=u;showMain();}else clrSess();}}
+
+// ══════════════════════════════════════════════════
+// ACCESS CONTROL
+// ══════════════════════════════════════════════════
+function getUserCats(){
+  if(!CU)return [];
+  if(CU.role==='admin') return Object.keys(DB);
+  const perms=getPerms();
+  return perms[CU.dept]||[];
+}
+
+// ══════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════
+const TL={HW:'하드웨어',SW:'소프트웨어',NET:'네트워크'};
+const TC={HW:'thw',SW:'tsw',NET:'tnt'};
+
+function initCats(){
+  const grid=document.getElementById('catGrid');
+  grid.innerHTML='';
+  const allowed=getUserCats();
+  let total=0,access=0;
+  Object.keys(DB).forEach(k=>{
+    const c=DB[k];total+=c.items.length;
+    const ok=allowed.includes(k);
+    if(ok)access+=c.items.length;
+    grid.innerHTML+=`<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}> 
+      <div class="cd" style="background:${c.color}"></div>
+      <div class="ci" style="background:${c.color}15">${c.icon}</div>
+      <div class="cn">${c.name}</div>
+      <div class="ct">${c.items.length}건</div></div>`;
+  });
+  document.getElementById('totalCnt').textContent=total;
+  document.getElementById('accessCnt').textContent=access;
+}
+
+function renderCards(items,el,ck){
+  el.innerHTML='';
+  items.forEach((it,i)=>{
+    const tags=it.tags.map(t=>`<span class="tgi ${TC[t]}">${TL[t]}</span>`).join('');
+    const steps=it.steps.map((st,j)=>`<li class="si"><span class="sn">${j+1}</span><span class="st">${st}</span></li>`).join('');
+    const tip=it.tip?`<div class="tip"><span>💡</span><span>${it.tip}</span></div>`:'';
+    const sv=it.severity==='high'?'sh':it.severity==='mid'?'sm':'sl';
+    const uid='i-'+(ck||'s')+'-'+i;
+    el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}">
+      <div class="ih" onclick="tgl('${uid}')"><span class="sv ${sv}"></span><span class="nm">${it.title}</span><span class="ar">▼</span></div>
+      <div class="ib"><div class="tg">${tags}</div><ul class="sli">${steps}</ul>${tip}</div></div>`;
+  });
+}
+
+function hideAll(){['homeView','detView','sView','adminPanel','pwPanel'].forEach(id=>{const e=document.getElementById(id);e.classList?e.classList.remove('active'):e.style.display='none';});document.getElementById('homeView').style.display='none';}
+function showCat(k){const c=DB[k];hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='block';document.getElementById('detView').classList.add('active');document.getElementById('dT').textContent=c.icon+' '+c.name;document.getElementById('dC').textContent=c.items.length+'건';renderCards(c.items,document.getElementById('dCards'),k);scrollTo(0,0);}
+function goHome(){hideAll();document.getElementById('homeView').style.display='block';document.getElementById('statsBar').style.display='flex';document.getElementById('srchWrap').style.display='block';document.getElementById('sInput').value='';document.getElementById('sClear').classList.remove('show');initCats();scrollTo(0,0);}
+function tgl(id){const c=document.getElementById(id),o=c.classList.contains('open');document.querySelectorAll('.ic.open').forEach(x=>x.classList.remove('open'));if(!o)c.classList.add('open');}
+
+function doSearch(v){const cl=document.getElementById('sClear');if(!v.trim()){cl.classList.remove('show');goHome();return;}cl.classList.add('show');const q=v.toLowerCase(),res=[],allowed=getUserCats();Object.keys(DB).forEach(k=>{if(!allowed.includes(k)&&CU.role!=='admin')return;DB[k].items.forEach(it=>{if(it.title.toLowerCase().includes(q)||it.steps.some(st=>st.toLowerCase().includes(q)))res.push(it);});});hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('sView').classList.add('active');document.getElementById('sCnt').textContent=res.length+'건';const c=document.getElementById('sCards');if(!res.length)c.innerHTML=`<div class="se">"${v}" 검색 결과 없음</div>`;else renderCards(res,c,null);}
+function clrSearch(){document.getElementById('sInput').value='';goHome();}
+
+// ══════════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════════
+function showAdmin(){hideAll();document.getElementById('adminPanel').classList.add('active');document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='none';aTab('users',document.querySelectorAll('.atab')[0]);}
+function hideAdmin(){goHome();}
+function aTab(tab,el){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['aUsers','aAddUser','aDepts','aPerms'].forEach(id=>document.getElementById(id).style.display='none');if(tab==='users'){document.getElementById('aUsers').style.display='block';renderUserList();}else if(tab==='adduser'){document.getElementById('aAddUser').style.display='block';renderAddUser();}else if(tab==='depts'){document.getElementById('aDepts').style.display='block';renderDepts();}else if(tab==='perms'){document.getElementById('aPerms').style.display='block';renderPerms();}}
+
+function renderUserList(){
+  const users=getUsers(),depts=getDepts(),el=document.getElementById('aUsers');
+  const cols=['#4A6CF7','#10B981','#F97316','#EC4899','#8B5CF6','#06B6D4','#EF4444'];
+  el.innerHTML=users.map((u,i)=>{
+    const c=cols[i%cols.length],dept=depts.find(d=>d.id===u.dept),isMe=CU&&u.id===CU.id;
+    const rTag=u.role==='admin'?'<span class="ur ura">관리자</span>':'<span class="ur uru">일반</span>';
+    const dTag=dept?`<span class="ud-tag">${dept.name}</span>`:'';
+    const del=(isMe||u.role==='admin'&&getUsers().filter(x=>x.role==='admin').length<=1)?'':`<button class="ub dl" onclick="askDel('${u.id}')">✕</button>`;
+    const role=isMe?'':(u.role==='admin'?`<button class="ub" title="일반으로" onclick="tglRole('${u.id}')">👤</button>`:`<button class="ub" title="관리자로" onclick="tglRole('${u.id}')">⭐</button>`);
+    return `<div class="uc an" style="animation-delay:${i*.02}s"><div class="ua" style="background:${c}18;color:${c}">${u.name[0]}</div><div class="ui"><div class="un">${u.name} ${rTag} ${dTag} ${isMe?'<span style="font-size:9px;color:var(--tm)">(나)</span>':''}</div><div class="uid">${u.id} · ${u.created}</div></div><div class="uact">${role}${del}</div></div>`;
+  }).join('');
+}
+
+function renderAddUser(){
+  const depts=getDepts();
+  document.getElementById('aAddUser').innerHTML=`<div class="af"><h3>새 직원 추가</h3>
+    <div class="fr"><label>이름</label><input type="text" class="field" id="aName" placeholder="홍길동"></div>
+    <div class="fr"><label>아이디</label><input type="text" class="field" id="aId" placeholder="영문/숫자"></div>
+    <div class="fr"><label>초기 비밀번호</label><input type="text" class="field" id="aPw" placeholder="1234"></div>
+    <div class="fr"><label>부서</label><select class="field" id="aDept">${depts.map(d=>`<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
+    <div class="fr"><label>권한</label><select class="field" id="aRole"><option value="user">일반 직원</option><option value="admin">관리자</option></select></div>
+    <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="addUser()">추가하기</button></div>
+    <div class="err" id="addErr"></div></div>`;
+}
+
+function addUser(){
+  const nm=document.getElementById('aName').value.trim(),id=document.getElementById('aId').value.trim(),pw=document.getElementById('aPw').value,dept=document.getElementById('aDept').value,role=document.getElementById('aRole').value,er=document.getElementById('addErr');
+  if(!nm||!id||!pw){er.textContent='모든 항목을 입력하세요.';er.classList.add('show');return;}
+  const users=getUsers();
+  if(users.find(u=>u.id===id)){er.textContent='이미 존재하는 아이디';er.classList.add('show');return;}
+  er.classList.remove('show');
+  users.push({id,name:nm,pw,role,dept,created:new Date().toISOString().slice(0,10)});
+  saveUsers(users);toast('✅ '+nm+'님 추가 완료');
+  aTab('users',document.querySelectorAll('.atab')[0]);
+}
+
+function askDel(uid){const u=getUsers().find(x=>x.id===uid);if(!u)return;delTgt=uid;document.getElementById('delMsg').innerHTML=`<b>${u.name}</b>(${u.id})님을 삭제하시겠습니까?<br>삭제 즉시 로그인이 차단됩니다.`;document.getElementById('delModal').classList.add('show');}
+function closeModal(){document.getElementById('delModal').classList.remove('show');delTgt=null;}
+function confirmDel(){if(!delTgt)return;let users=getUsers();const u=users.find(x=>x.id===delTgt);users=users.filter(x=>x.id!==delTgt);saveUsers(users);closeModal();toast('🚫 '+u.name+'님 삭제');renderUserList();}
+function tglRole(uid){const users=getUsers(),u=users.find(x=>x.id===uid);if(!u)return;if(u.role==='admin'&&users.filter(x=>x.role==='admin').length<=1){toast('⚠️ 관리자 최소 1명 필요');return;}u.role=u.role==='admin'?'user':'admin';saveUsers(users);toast('✅ 권한 변경 완료');renderUserList();}
+
+// ─── Dept Management ───
+function renderDepts(){
+  const depts=getDepts(),el=document.getElementById('aDepts');
+  let html=depts.map((d,i)=>`<div class="uc an" style="animation-delay:${i*.02}s">
+    <div class="ua" style="background:${d.color}18;color:${d.color}">${d.name[0]}</div>
+    <div class="ui"><div class="un" style="font-size:13px">${d.name}</div><div class="uid">${getUsers().filter(u=>u.dept===d.id).length}명 소속</div></div>
+    <div class="uact">${depts.length>1?`<button class="ub dl" onclick="delDept('${d.id}')">✕</button>`:''}</div></div>`).join('');
+  html+=`<div class="af" style="margin-top:10px"><h3>부서 추가</h3>
+    <div class="fr"><label>부서명</label><input type="text" class="field" id="deptName" placeholder="개발팀"></div>
+    <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="addDept()">추가</button></div></div>`;
+  el.innerHTML=html;
+}
+function addDept(){
+  const nm=document.getElementById('deptName').value.trim();
+  if(!nm){toast('⚠️ 부서명을 입력하세요');return;}
+  const depts=getDepts(),id=nm.toLowerCase().replace(/\s/g,'_')+'_'+Date.now()%1000;
+  const colors=['#F97316','#EC4899','#8B5CF6','#EF4444','#14B8A6','#6366F1'];
+  depts.push({id,name:nm,color:colors[depts.length%colors.length]});
+  saveDepts(depts);
+  const perms=getPerms();perms[id]=[];savePerms(perms);
+  toast('✅ '+nm+' 부서 추가');renderDepts();
+}
+function delDept(did){
+  let depts=getDepts();
+  if(depts.length<=1){toast('⚠️ 최소 1개 부서 필요');return;}
+  const users=getUsers();
+  if(users.some(u=>u.dept===did)){toast('⚠️ 소속 직원이 있어 삭제 불가. 먼저 직원 부서를 변경하세요');return;}
+  depts=depts.filter(d=>d.id!==did);saveDepts(depts);
+  const perms=getPerms();delete perms[did];savePerms(perms);
+  toast('🗑 부서 삭제');renderDepts();
+}
+
+// ─── Category Permissions ───
+function renderPerms(){
+  const depts=getDepts(),perms=getPerms(),el=document.getElementById('aPerms');
+  let html='<div class="af"><h3>부서별 카테고리 접근 권한</h3><p style="font-size:11px;color:var(--ts);margin-bottom:12px;line-height:1.5">각 카테고리에 접근할 수 있는 부서를 선택하세요.<br>관리자는 모든 카테고리를 볼 수 있습니다.</p><div class="perm-grid">';
+  Object.keys(DB).forEach(k=>{
+    const c=DB[k];
+    html+=`<div class="perm-row"><div class="perm-cat"><span class="picon">${c.icon}</span>${c.name}</div><div class="perm-checks">`;
+    depts.forEach(d=>{
+      const on=(perms[d.id]||[]).includes(k);
+      html+=`<span class="perm-chip ${on?'on':''}" onclick="tglPerm('${d.id}','${k}',this)">${d.name}</span>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+function tglPerm(deptId,catKey,chip){
+  const perms=getPerms();
+  if(!perms[deptId])perms[deptId]=[];
+  const idx=perms[deptId].indexOf(catKey);
+  if(idx>-1){perms[deptId].splice(idx,1);chip.classList.remove('on');}
+  else{perms[deptId].push(catKey);chip.classList.add('on');}
+  savePerms(perms);
+}
+
+// ─── PW Change ───
+function showPwChange(){hideAll();document.getElementById('pwPanel').classList.add('active');document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='none';}
+function changePw(){
+  const cur=document.getElementById('curPw').value,nw=document.getElementById('newPw').value,nw2=document.getElementById('newPw2').value,er=document.getElementById('pwErr');
+  if(!cur||!nw||!nw2){er.textContent='모든 항목을 입력하세요.';er.classList.add('show');return;}
+  if(cur!==CU.pw){er.textContent='현재 비밀번호가 올바르지 않습니다.';er.classList.add('show');return;}
+  if(nw!==nw2){er.textContent='새 비밀번호가 일치하지 않습니다.';er.classList.add('show');return;}
+  if(nw.length<4){er.textContent='4자 이상 입력하세요.';er.classList.add('show');return;}
+  er.classList.remove('show');
+  const users=getUsers(),u=users.find(x=>x.id===CU.id);
+  if(u){u.pw=nw;saveUsers(users);CU.pw=nw;}
+  document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';
+  toast('✅ 비밀번호 변경 완료');goHome();
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+initCats();checkSess();
+</script>
+</body>
+</html>
