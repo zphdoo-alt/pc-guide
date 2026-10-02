@@ -169,6 +169,19 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .im-sub{font-size:11px;font-weight:600;color:var(--ts);margin:8px 2px 4px}
 .im-sub span{font-weight:400;color:var(--tm)}
 .field-ta{resize:none;overflow:hidden;line-height:1.5;display:block;min-height:42px}
+.drop{position:relative;border:1.5px dashed var(--bd);border-radius:var(--r);background:var(--bg);padding:14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:6px}
+.drop:hover,.drop.over{border-color:var(--ac);background:var(--al)}
+.drop .drop-msg{font-size:12px;color:var(--ts);line-height:1.5}
+.drop .drop-msg small{display:block;font-size:10px;color:var(--tm)}
+.drop.has .drop-msg{display:none}
+.drop .drop-prev{display:none;align-items:center;gap:10px;text-align:left}
+.drop.has .drop-prev{display:flex}
+.drop .drop-prev img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--bd);background:var(--bgc)}
+.drop .drop-prev .dp-name{flex:1;min-width:0;font-size:12px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drop .drop-prev .dp-name a{color:var(--ac)}
+.drop.busy{pointer-events:none;opacity:.6}
+.drop.busy::after{content:'업로드 중...';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ac);background:var(--al);border-radius:var(--r)}
+.field-sm{padding:8px 12px;font-size:12px}
 .im-empty{text-align:center;font-size:12px;color:var(--tm);padding:24px 0}
 .cat-select-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .cat-sel-chip{font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--ts);transition:all .15s}
@@ -656,6 +669,68 @@ function imPickCat(k){imCat=k;renderIssueManager();}
 function imCloseForm(){document.getElementById('issueFormWrap').style.display='none';const list=document.querySelector('#aIssues > .af');if(list){list.style.display='';list.scrollIntoView({block:'start'});}}
 // 여러 줄 입력칸 높이를 내용에 맞춤 (줄바꿈은 막고 자동 줄넘김만 허용)
 function taFit(el){if(el.value.includes('\n'))el.value=el.value.replace(/\s*\n\s*/g,' ');el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+// ─── 이미지·PDF 끌어다 놓기 업로드 ───
+// 파일을 Apps Script(uploadFile)로 보내 구글 드라이브에 저장하고, 받은 공유 링크를 입력칸에 넣는다.
+function dzSlot(id,kind,label,val){
+  const msg=kind==='image'?'🖼️ 이미지를 끌어다 놓거나 눌러서 선택<small>PC에서는 캡처 후 Ctrl+V로 붙여넣기도 돼요</small>':'📄 PDF를 끌어다 놓거나 눌러서 선택<small>20MB 이하</small>';
+  return `<div class="fr"><label>${label}</label><div class="drop" data-target="${id}" data-kind="${kind}" onclick="dzPick(this)" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dzDrop(event,this)"><div class="drop-msg">${msg}</div><div class="drop-prev"></div></div><input type="text" class="field field-sm" id="${id}" placeholder="또는 Google Drive 공유 링크 붙여넣기" value="${esc(val||'')}" oninput="dzPreview('${id}')"></div>`;
+}
+function dzZone(id){return document.querySelector(`.drop[data-target="${id}"]`);}
+function dzPreview(id){
+  const z=dzZone(id),inp=document.getElementById(id);if(!z||!inp)return;
+  const v=inp.value.trim(),box=z.querySelector('.drop-prev');
+  z.classList.toggle('has',!!v);if(!v){box.innerHTML='';return;}
+  const clr=`<button type="button" class="ub dl" onclick="event.stopPropagation();dzClear('${id}')">✕</button>`;
+  box.innerHTML=z.dataset.kind==='image'
+    ?`<img src="${esc(driveImgUrl(v))}" alt="" onerror="this.style.visibility='hidden'"><div class="dp-name">이미지 첨부됨<br><small style="color:var(--tm)">눌러서 다른 이미지로 바꾸기</small></div>${clr}`
+    :`<div style="font-size:28px">📄</div><div class="dp-name">PDF 첨부됨 · <a href="${esc(v)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">열어보기</a><br><small style="color:var(--tm)">눌러서 다른 파일로 바꾸기</small></div>${clr}`;
+}
+function dzClear(id){document.getElementById(id).value='';dzPreview(id);}
+function dzPick(z){
+  const f=document.createElement('input');f.type='file';
+  f.accept=z.dataset.kind==='image'?'image/*':'application/pdf';
+  f.onchange=()=>{if(f.files[0])dzUpload(f.files[0],z);};f.click();
+}
+function dzDrop(e,z){e.preventDefault();z.classList.remove('over');const f=e.dataTransfer.files[0];if(f)dzUpload(f,z);}
+function fileToB64(file){return new Promise((ok,ng)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ng;r.readAsDataURL(file);});}
+// 큰 사진은 가로·세로 최대 1600px JPEG로 줄여서 올린다 (업로드 시간·드라이브 용량 절약)
+function shrinkImage(file){
+  return new Promise((ok,ng)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);ok(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);ng(new Error('이미지를 읽을 수 없어요'));};
+    img.src=url;
+  });
+}
+async function dzUpload(file,z){
+  const kind=z.dataset.kind,id=z.dataset.target;
+  if(kind==='image'&&!/^image\//.test(file.type)){toast('⚠️ 이미지 파일만 넣을 수 있어요');return;}
+  if(kind==='doc'&&file.type!=='application/pdf'){toast('⚠️ PDF 파일만 넣을 수 있어요');return;}
+  if(kind==='doc'&&file.size>20*1024*1024){toast('⚠️ PDF는 20MB 이하만 올릴 수 있어요');return;}
+  z.classList.add('busy');
+  try{
+    let data,mime=file.type,name=file.name||('capture_'+Date.now()+'.png');
+    if(kind==='image'&&file.type!=='image/gif'){data=await shrinkImage(file);mime='image/jpeg';name=name.replace(/\.[^.]+$/,'')+'.jpg';}
+    else data=await fileToB64(file);
+    const res=await apiPost({action:'uploadFile',name,mimeType:mime,data});
+    if(!res||res.error||!res.url){toast('⚠️ 업로드 실패'+(res&&res.error?': '+res.error:' — 인터넷이나 서버 설정을 확인하세요'));return;}
+    document.getElementById(id).value=res.url;dzPreview(id);toast('✅ 업로드 완료');
+  }catch(e){toast('⚠️ '+(e.message||'업로드 실패'));}
+  finally{z.classList.remove('busy');}
+}
+// 수정 화면이 열려 있을 때 Ctrl+V로 붙여넣은 이미지는 비어 있는 첫 이미지 칸에 올린다
+document.addEventListener('paste',e=>{
+  const w=document.getElementById('issueFormWrap');if(!w||w.style.display==='none')return;
+  const item=[...(e.clipboardData||{}).items||[]].find(i=>i.kind==='file'&&/^image\//.test(i.type));if(!item)return;
+  const z=[...w.querySelectorAll('.drop[data-kind="image"]')].find(z=>!document.getElementById(z.dataset.target).value.trim());
+  if(!z){toast('⚠️ 이미지 칸 4개가 모두 차 있어요');return;}
+  e.preventDefault();z.scrollIntoView({block:'center'});dzUpload(item.getAsFile(),z);
+});
 function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList();}
 
 function showIssueForm(editData){
@@ -695,18 +770,19 @@ function showIssueForm(editData){
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
     <div class="fr"><label>조치 1</label><textarea class="field field-ta" id="issS1" rows="1" placeholder="첫번째 조치 방법" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step1):''}</textarea></div>
-    <div class="fr"><label>이미지 1 URL (선택)</label><input type="text" class="field" id="issI1" placeholder="Google Drive 공유 링크" value="${editData?esc(editData.img1):''}"></div>
+    ${dzSlot('issI1','image','이미지 1 (선택)',editData?editData.img1:'')}
     <div class="fr"><label>조치 2</label><textarea class="field field-ta" id="issS2" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step2):''}</textarea></div>
-    <div class="fr"><label>이미지 2 URL (선택)</label><input type="text" class="field" id="issI2" value="${editData?esc(editData.img2):''}"></div>
+    ${dzSlot('issI2','image','이미지 2 (선택)',editData?editData.img2:'')}
     <div class="fr"><label>조치 3</label><textarea class="field field-ta" id="issS3" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step3):''}</textarea></div>
-    <div class="fr"><label>이미지 3 URL (선택)</label><input type="text" class="field" id="issI3" value="${editData?esc(editData.img3):''}"></div>
+    ${dzSlot('issI3','image','이미지 3 (선택)',editData?editData.img3:'')}
     <div class="fr"><label>조치 4</label><textarea class="field field-ta" id="issS4" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step4):''}</textarea></div>
-    <div class="fr"><label>이미지 4 URL (선택)</label><input type="text" class="field" id="issI4" value="${editData?esc(editData.img4):''}"></div>
+    ${dzSlot('issI4','image','이미지 4 (선택)',editData?editData.img4:'')}
     <div class="fr"><label>팁 (선택)</label><textarea class="field field-ta" id="issTip" rows="1" placeholder="유용한 팁" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.tip):''}</textarea></div>
-    <div class="fr"><label>첨부 PDF/문서 링크 <span style="font-size:10px;color:var(--tm)">(선택 · 내용이 길면 Google Drive 공유 링크)</span></label><input type="text" class="field" id="issDoc" placeholder="https://drive.google.com/file/d/..../view" value="${editData?esc(editData.doc_url||''):''}"></div>
+    ${dzSlot('issDoc','doc','첨부 PDF (선택)',editData?editData.doc_url:'')}
     <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="saveIssue()">${editData?'수정 저장':'추가하기'}</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="imCloseForm()">취소</button></div>
     <div class="err" id="issErr"></div></div>`;
   w.querySelectorAll('.field-ta').forEach(taFit);
+  w.querySelectorAll('.drop').forEach(z=>dzPreview(z.dataset.target));
   w.scrollIntoView({block:'start'});
 }
 
