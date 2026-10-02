@@ -335,7 +335,7 @@ function buildDB(issues){
     const steps=[],imgs=[];
     for(let i=1;i<=4;i++){const st=String(row['step'+i]||'');if(st){steps.push(st);imgs.push(driveImgUrl(row['img'+i]||''));}}
     const tags=String(row.tags||'').split(',').map(x=>x.trim()).filter(Boolean);
-    DB[cat].items.push({id:String(row.id),subcat:String(row.subcat||''),subcat2:String(row.subcat2||''),subcat_icon:String(row.subcat_icon||''),title:String(row.title||''),severity:String(row.severity||'mid'),tags,steps,imgs,tip:String(row.tip||'')});
+    DB[cat].items.push({id:String(row.id),subcat:String(row.subcat||''),subcat2:String(row.subcat2||''),subcat_icon:String(row.subcat_icon||''),title:String(row.title||''),severity:String(row.severity||'mid'),tags,steps,imgs,tip:String(row.tip||''),doc_url:String(row.doc_url||'')});
   });
   // cat_order 기준으로 카테고리 정렬(값 없는 건 뒤로, 원래 순서 유지)
   const keys=Object.keys(DB);
@@ -398,8 +398,9 @@ function renderCards(items,el,ck){
       return `<li class="si"><span class="sn">${j+1}</span><span class="st">${esc(st)}${imgTag}</span></li>`;
     }).join('');
     const tip=it.tip?`<div class="tip"><span>💡</span><span>${esc(it.tip)}</span></div>`:'';
+    const doc=it.doc_url?`<a href="${esc(it.doc_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:9px 14px;border:1.5px solid var(--ac);color:var(--ac);border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">📄 자세한 내용 PDF로 보기</a>`:'';
     const uid='i-'+(ck||'s')+'-'+i;
-    el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}"><div class="ih" onclick="tgl('${uid}')"><span class="nm">${esc(it.title)}</span><span class="ar">▼</span></div><div class="ib"><ul class="sli">${steps}</ul>${tip}</div></div>`;
+    el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}"><div class="ih" onclick="tgl('${uid}')"><span class="nm">${esc(it.title)}</span><span class="ar">▼</span></div><div class="ib"><ul class="sli">${steps}</ul>${tip}${doc}</div></div>`;
   });
 }
 
@@ -648,6 +649,7 @@ function showIssueForm(editData){
     <div class="fr"><label>조치 4</label><input type="text" class="field" id="issS4" value="${editData?esc(editData.step4):''}"></div>
     <div class="fr"><label>이미지 4 URL (선택)</label><input type="text" class="field" id="issI4" value="${editData?esc(editData.img4):''}"></div>
     <div class="fr"><label>팁 (선택)</label><input type="text" class="field" id="issTip" placeholder="유용한 팁" value="${editData?esc(editData.tip):''}"></div>
+    <div class="fr"><label>첨부 PDF/문서 링크 <span style="font-size:10px;color:var(--tm)">(선택 · 내용이 길면 Google Drive 공유 링크)</span></label><input type="text" class="field" id="issDoc" placeholder="https://drive.google.com/file/d/..../view" value="${editData?esc(editData.doc_url||''):''}"></div>
     <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="saveIssue()">${editData?'수정 저장':'추가하기'}</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="document.getElementById('issueFormWrap').style.display='none'">취소</button></div>
     <div class="err" id="issErr"></div></div>`;
   w.scrollIntoView({behavior:'smooth'});
@@ -684,7 +686,7 @@ function editIssue(id){
     id:String(row.id||''),
     category:String(row.category||''),subcat:String(row.subcat||''),subcat2:String(row.subcat2||''),subcat_icon:String(row.subcat_icon||''),title:String(row.title||''),severity:String(row.severity||'mid'),
     tags:String(row.tags||''),step1:String(row.step1||''),img1:String(row.img1||''),step2:String(row.step2||''),img2:String(row.img2||''),
-    step3:String(row.step3||''),img3:String(row.img3||''),step4:String(row.step4||''),img4:String(row.img4||''),tip:String(row.tip||'')
+    step3:String(row.step3||''),img3:String(row.img3||''),step4:String(row.step4||''),img4:String(row.img4||''),tip:String(row.tip||''),doc_url:String(row.doc_url||'')
   });
 }
 
@@ -726,7 +728,8 @@ async function saveIssue(){
     step2:document.getElementById('issS2').value.trim(),img2:document.getElementById('issI2').value.trim(),
     step3:document.getElementById('issS3').value.trim(),img3:document.getElementById('issI3').value.trim(),
     step4:document.getElementById('issS4').value.trim(),img4:document.getElementById('issI4').value.trim(),
-    tip:document.getElementById('issTip').value.trim()
+    tip:document.getElementById('issTip').value.trim(),
+    doc_url:document.getElementById('issDoc').value.trim()
   };
 
   // 저장 직전 서버 최신본을 먼저 받아, 다른 관리자가 추가한 가이드를 덮어쓰지 않도록 한다.
