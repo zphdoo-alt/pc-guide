@@ -297,12 +297,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxTDMRVJQ3aBbVe-CLexKVY
 
 const DEF_DEPTS=[{id:'it',name:'전산팀',color:'#4A6CF7'},{id:'security',name:'보안팀',color:'#06B6D4'},{id:'infra',name:'인프라팀',color:'#10B981'},{id:'general',name:'일반',color:'#9090A0'}];
 const DEF_PERMS={it:['printer','network','bluescreen','boot','software','monitor','keyboard','security','storage','sound'],security:['security','network','software'],infra:['network','boot','storage','monitor'],general:['printer','software','keyboard','sound']};
-const DEF_USERS=[{id:'admin',name:'관리자',pw:'admin1234',role:'admin',dept:'it',created:'2026-05-08'}];
+const DEF_USERS=[];
 
 function g(k,d){try{const v=JSON.parse(localStorage.getItem('pcg_'+k));return v||d;}catch(e){return d;}}
 function s(k,v){localStorage.setItem('pcg_'+k,JSON.stringify(v));}
 function getUsers(){return g('users',DEF_USERS);}
-function saveUsers(u){s('users',u);}
+// 예전 버전이 브라우저에 남긴 비밀번호 지우기
+try{const ou=JSON.parse(localStorage.getItem('pcg_users')||'null');if(Array.isArray(ou)&&ou.some(u=>'pw' in u))saveUsers(ou);}catch(e){}
+function saveUsers(u){s('users',u.map(({pw,...r})=>r));}
 function getDepts(){return g('depts',DEF_DEPTS);}
 function saveDepts(d){s('depts',d);}
 function getPerms(){return g('perms',DEF_PERMS);}
@@ -314,8 +316,15 @@ function clrSess(){sessionStorage.removeItem('pcg_sess');}
 let CU=null,delTgt=null,delType='',DB={},RAW_ISSUES=[];
 let curCat=null,curSub=null,curSub2=null,curView=''; // 현재 카테고리/소분류/소소분류, 현재 화면 단계
 
-async function apiGet(action){try{const r=await fetch(API_URL+'?action='+action);return await r.json();}catch(e){return null;}}
-async function apiPost(data){try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(data)});return await r.json();}catch(e){return null;}}
+async function apiPost(data){
+  try{
+    const ss=getSess();
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({token:ss&&ss.token},data))});
+    const res=await r.json();
+    if(res&&res.error==='AUTH'&&data.action!=='login'){if(CU){doLogout();toast('🔒 '+(res.message||'다시 로그인해 주세요'));}return null;}
+    return res;
+  }catch(e){return null;}
+}
 
 function driveImgUrl(url){if(!url)return '';const m=String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);if(m)return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800';return String(url);}
 
@@ -341,9 +350,9 @@ function assignIds(rows,prevRows){
 
 async function syncFromServer(){
   const bar=document.getElementById('syncBar');if(bar)bar.classList.add('show');
-  const data=await apiGet('getAll');
+  const data=await apiPost({action:'getAll'});
   if(!data||data.error){if(bar)bar.classList.remove('show');return false;}
-  if(data.users&&data.users.length){saveUsers(data.users.map(u=>({id:String(u.id||''),name:String(u.name||''),pw:String(u.pw||''),role:String(u.role||'user'),dept:String(u.dept||'general'),created:String(u.created||'').slice(0,10)})));}
+  if(data.users&&data.users.length){saveUsers(data.users.map(u=>({id:String(u.id||''),name:String(u.name||''),role:String(u.role||'user'),dept:String(u.dept||'general'),created:String(u.created||'').slice(0,10)})));}
   if(data.depts&&data.depts.length){saveDepts(data.depts.map(d=>({id:String(d.id||''),name:String(d.name||''),color:String(d.color||'#9090A0')})));}
   if(data.perms&&data.perms.length){const perms={};data.perms.forEach(p=>{perms[String(p.dept_id||'')]=String(p.categories||'').split(',').map(x=>x.trim()).filter(Boolean);});savePerms(perms);}
   if(data.issues&&data.issues.length){
@@ -382,29 +391,23 @@ function loadCachedDB(){RAW_ISSUES=g('raw_issues',[]);assignIds(RAW_ISSUES,RAW_I
 async function doLogin(){
   const id=document.getElementById('loginId').value.trim(),pw=document.getElementById('loginPw').value,er=document.getElementById('loginErr'),btn=document.getElementById('loginBtn');
   if(!id||!pw){er.textContent='아이디와 비밀번호를 입력하세요.';er.classList.add('show');return;}
-  loadCachedDB();
-  const cached=getUsers();
-  const u=cached.find(x=>x.id===id&&x.pw===pw);
-  if(u){
-    er.classList.remove('show');CU=u;setSess({id:u.id});showMain();
-    syncFromServer().then(()=>{if(CU){const u2=getUsers().find(x=>x.id===CU.id);if(u2)CU=u2;goHome();}});
-  } else {
-    btn.textContent='확인 중...';btn.disabled=true;
-    await syncFromServer();
-    btn.textContent='로그인';btn.disabled=false;
-    const u2=getUsers().find(x=>x.id===id&&x.pw===pw);
-    if(!u2){er.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';er.classList.add('show');return;}
-    er.classList.remove('show');CU=u2;setSess({id:u2.id});showMain();
-  }
+  btn.textContent='확인 중...';btn.disabled=true;
+  const res=await apiPost({action:'login',id,pw});
+  btn.textContent='로그인';btn.disabled=false;
+  if(!res||!res.token){er.textContent=res&&res.error?res.error:'서버에 연결할 수 없습니다. 인터넷을 확인하세요.';er.classList.add('show');return;}
+  er.classList.remove('show');document.getElementById('loginPw').value='';
+  CU=res.user;setSess({token:res.token,user:res.user});
+  loadCachedDB();showMain();
+  syncFromServer().then(()=>{if(CU){const u2=getUsers().find(x=>x.id===CU.id);if(u2)CU=u2;goHome();}});
 }
-function doLogout(){clrSess();CU=null;document.getElementById('mainScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');document.getElementById('loginId').value='';document.getElementById('loginPw').value='';}
+function doLogout(){const ss=getSess();if(ss&&ss.token)apiPost({action:'logout'});clrSess();CU=null;document.getElementById('mainScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');document.getElementById('loginId').value='';document.getElementById('loginPw').value='';}
 function showMain(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainScreen').classList.add('active');
   document.getElementById('userPill').textContent=CU.name;
   const dept=getDepts().find(d=>d.id===CU.dept);document.getElementById('deptPill').textContent=dept?dept.name:'';
   document.getElementById('adminBtn').style.display=CU.role==='admin'?'flex':'none';goHome();
 }
-async function checkSess(){const ss=getSess();if(ss){loadCachedDB();const u=getUsers().find(x=>x.id===ss.id);if(u){CU=u;showMain();syncFromServer().then(()=>{if(CU){const u2=getUsers().find(x=>x.id===ss.id);if(u2)CU=u2;goHome();}});}else clrSess();}}
+async function checkSess(){const ss=getSess();if(!ss||!ss.token||!ss.user){clrSess();return;}loadCachedDB();CU=ss.user;showMain();syncFromServer().then(()=>{if(CU){const u2=getUsers().find(x=>x.id===CU.id);if(u2)CU=u2;goHome();}});}
 
 function getUserCats(){if(!CU)return[];if(CU.role==='admin')return Object.keys(DB);const perms=getPerms();return perms[CU.dept]||[];}
 
@@ -571,8 +574,8 @@ function resetPw(uid){
   const users=getUsers(),u=users.find(x=>x.id===uid);if(!u)return;
   const np=prompt(u.name+'님의 새 비밀번호를 입력하세요:','1234');
   if(!np)return;if(np.length<4){toast('⚠️ 4자 이상 입력하세요');return;}
-  u.pw=np;saveUsers(users);
-  apiPost({action:'updateUsers',rows:users}).then(res=>toast(apiOk(res)?'✅ '+u.name+'님 비밀번호 초기화 완료':'⚠️ 초기화 — 서버 반영 실패, 다시 시도하세요'));
+  const rows=users.map(x=>x.id===uid?Object.assign({},x,{pw:np}):x);
+  apiPost({action:'updateUsers',rows}).then(res=>toast(apiOk(res)?'✅ '+u.name+'님 비밀번호 초기화 완료':'⚠️ 초기화 — 서버 반영 실패, 다시 시도하세요'));
 }
 
 function renderAddUser(){
@@ -953,17 +956,16 @@ function tglPermAll(deptId){
 
 // PW
 function showPwChange(){hideAll();document.getElementById('pwPanel').classList.add('active');document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='none';}
-function changePw(){
+async function changePw(){
   const cur=document.getElementById('curPw').value,nw=document.getElementById('newPw').value,nw2=document.getElementById('newPw2').value,er=document.getElementById('pwErr');
   if(!cur||!nw||!nw2){er.textContent='모든 항목을 입력하세요.';er.classList.add('show');return;}
-  if(cur!==CU.pw){er.textContent='현재 비밀번호가 올바르지 않습니다.';er.classList.add('show');return;}
   if(nw!==nw2){er.textContent='새 비밀번호가 일치하지 않습니다.';er.classList.add('show');return;}
   if(nw.length<4){er.textContent='4자 이상 입력하세요.';er.classList.add('show');return;}
-  er.classList.remove('show');const users=getUsers(),u=users.find(x=>x.id===CU.id);
-  if(u){u.pw=nw;saveUsers(users);CU.pw=nw;}
+  er.classList.remove('show');
+  const res=await apiPost({action:'changePw',cur,nw});
+  if(!apiOk(res)){er.textContent=res&&res.error?res.error:'서버에 연결할 수 없습니다. 다시 시도하세요.';er.classList.add('show');return;}
   document.getElementById('curPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value='';
-  goHome();
-  apiPost({action:'updateUsers',rows:users}).then(res=>toast(apiOk(res)?'✅ 비밀번호 변경 완료':'⚠️ 변경 — 서버 반영 실패, 다시 시도하세요'));
+  toast('✅ 비밀번호 변경 완료');goHome();
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
