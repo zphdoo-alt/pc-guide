@@ -45,9 +45,9 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .hdr-row{display:flex;align-items:center;justify-content:space-between}
 .hdr-l{display:flex;align-items:center;gap:8px}
 .hdr-ic{width:32px;height:32px;background:rgba(255,255,255,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.hdr-l h1{font-size:17px;font-weight:600}
+.hdr-l{min-width:0}.hdr-l h1{font-size:17px;font-weight:600;white-space:nowrap}
 .hdr-sub{font-size:11px;color:rgba(255,255,255,.5);margin-left:40px;margin-top:2px}
-.hdr-r{display:flex;gap:5px;align-items:center}
+.hdr-r{display:flex;gap:5px;align-items:center;flex-shrink:0}
 .hdr-btn{background:rgba(255,255,255,.1);border:none;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px}
 .hdr-btn:hover{background:rgba(255,255,255,.2)}
 .u-pill{font-size:10px;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);padding:2px 8px;border-radius:14px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -152,12 +152,31 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .issue-card .ic-info{flex:1;min-width:0}
 .issue-card .ic-title{font-size:12px;font-weight:500}
 .issue-card .ic-meta{font-size:10px;color:var(--tm)}
+.im-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:10px 0 8px;-webkit-overflow-scrolling:touch}
+.im-chip{flex-shrink:0;padding:6px 10px;border-radius:16px;border:1px solid var(--bd);background:var(--bgc);font-size:11px;color:var(--ts);cursor:pointer;white-space:nowrap;font-family:inherit}
+.im-chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.im-bar{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--tm);margin-bottom:6px}
+.im-bar button{background:none;border:none;color:var(--ac);font-size:11px;cursor:pointer;font-family:inherit;padding:2px 4px}
+.im-sec{border:1px solid var(--bd);border-radius:var(--r);background:var(--bgc);margin-bottom:6px;overflow:hidden}
+.im-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none}
+.im-head:hover{background:var(--al)}
+.im-head .im-name{flex:1;font-size:13px;font-weight:600}
+.im-head .im-cnt{font-size:11px;color:var(--tm);background:var(--bg);padding:2px 8px;border-radius:8px}
+.im-head .im-ar{font-size:11px;color:var(--tm);transition:transform .2s}
+.im-sec.open .im-ar{transform:rotate(90deg)}
+.im-body{display:none;padding:0 10px 8px}
+.im-sec.open .im-body{display:block}
+.im-sub{font-size:11px;font-weight:600;color:var(--ts);margin:8px 2px 4px}
+.im-sub span{font-weight:400;color:var(--tm)}
+.field-ta{resize:none;overflow:hidden;line-height:1.5;display:block;min-height:42px}
+.im-empty{text-align:center;font-size:12px;color:var(--tm);padding:24px 0}
 .cat-select-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .cat-sel-chip{font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--ts);transition:all .15s}
 .cat-sel-chip.active{color:#fff;border-color:transparent}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .an{animation:fadeUp .2s ease-out both}
 @media(min-width:480px){.cg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:420px){.dept-pill{display:none}.u-pill{max-width:64px}.hdr-l h1{font-size:16px}.ub{width:34px;height:34px;font-size:14px}.uact{gap:6px}}
 @media(min-width:768px){body{display:flex;justify-content:center}.app{max-width:480px;width:100%}}
 </style>
 </head>
@@ -587,23 +606,57 @@ function tglRole(uid){const users=getUsers(),u=users.find(x=>x.id===uid);if(!u)r
 // ─── Issue Manager ───
 let issueEditMode=false, issueEditTitle='', issueEditId='';
 
+// 목록 보기 상태 (다시 그려도 검색어·선택·펼침 상태 유지)
+let imQuery='', imCat='', imOpen=new Set();
+
 function renderIssueManager(){
   const el=document.getElementById('aIssues');
+  const total=Object.keys(DB).reduce((n,k)=>n+DB[k].items.length,0);
   let html='<div class="af"><h3>📋 가이드 데이터 관리</h3>';
-  html+=`<div class="fb" style="margin-bottom:12px"><button class="btn-sm btn-p" style="flex:1" onclick="showIssueForm()">+ 새 가이드 추가</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="syncAndRefresh()">🔄 서버 동기화</button></div>`;
-  // List by category
-  Object.keys(DB).forEach(k=>{
-    const c=DB[k];
-    html+=`<div style="margin-top:8px"><div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:4px">${esc(c.icon)} ${esc(c.name)} <span style="font-size:10px;color:var(--tm)">(${c.items.length}건)</span></div>`;
-    c.items.forEach(it=>{
-      html+=`<div class="issue-card an"><div class="ic-color" style="background:${c.color}"></div><div class="ic-info"><div class="ic-title">${esc(it.title)}</div><div class="ic-meta">${it.subcat?'📂 '+esc(it.subcat)+(it.subcat2?' › '+esc(it.subcat2):'')+' · ':''}${it.steps.length}단계</div></div><div class="uact"><button class="ub" onclick="editIssue('${it.id}')">✏️</button><button class="ub dl" onclick="askDelIssue('${it.id}')">✕</button></div></div>`;
-    });
-    html+='</div>';
-  });
-  html+='</div>';
+  html+=`<div class="fb" style="margin-bottom:10px"><button class="btn-sm btn-p" style="flex:1" onclick="showIssueForm()">+ 새 가이드 추가</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="syncAndRefresh()">🔄 서버 동기화</button></div>`;
+  html+=`<input type="text" class="field" id="imSearch" placeholder="🔍 제목·소분류·태그로 검색" value="${esc(imQuery)}" oninput="imQuery=this.value;renderIssueList()">`;
+  html+=`<div class="im-chips"><button class="im-chip ${imCat?'':'on'}" onclick="imPickCat('')">전체 ${total}</button>`;
+  Object.keys(DB).forEach(k=>{const c=DB[k];html+=`<button class="im-chip ${imCat===k?'on':''}" onclick="imPickCat('${esc(k)}')">${esc(c.icon)} ${esc(c.name)} ${c.items.length}</button>`;});
+  html+='</div><div id="imList"></div></div>';
   html+='<div id="issueFormWrap" style="display:none"></div>';
   el.innerHTML=html;
+  renderIssueList();
 }
+
+function renderIssueList(){
+  const box=document.getElementById('imList');if(!box)return;
+  const q=imQuery.trim().toLowerCase();
+  const match=it=>!q||[it.title,it.subcat,it.subcat2,it.tags.join(' ')].join(' ').toLowerCase().includes(q);
+  const keys=Object.keys(DB).filter(k=>!imCat||k===imCat);
+  let html='',shown=0,secs=0;
+  keys.forEach(k=>{
+    const c=DB[k],items=c.items.filter(match);
+    if(!items.length)return;
+    shown+=items.length;secs++;
+    // 검색 중이거나 카테고리 하나만 골랐으면 자동으로 펼침
+    const open=q||imCat||imOpen.has(k);
+    // 소분류별로 묶기
+    const groups={},order=[];
+    items.forEach(it=>{const s=it.subcat||'';if(!(s in groups)){groups[s]=[];order.push(s);}groups[s].push(it);});
+    html+=`<div class="im-sec ${open?'open':''}"><div class="im-head" onclick="imToggle('${esc(k)}')"><span class="im-ar">▶</span><span>${esc(c.icon)}</span><span class="im-name">${esc(c.name)}</span><span class="im-cnt">${items.length}건</span></div><div class="im-body">`;
+    order.forEach(s=>{
+      if(order.length>1||s)html+=`<div class="im-sub">📂 ${esc(s||'기타')} <span>${groups[s].length}</span></div>`;
+      groups[s].forEach(it=>{
+        html+=`<div class="issue-card"><div class="ic-color" style="background:${c.color}"></div><div class="ic-info"><div class="ic-title">${esc(it.title)}</div><div class="ic-meta">${it.subcat2?'› '+esc(it.subcat2)+' · ':''}${it.steps.length}단계</div></div><div class="uact"><button class="ub" onclick="editIssue('${it.id}')">✏️</button><button class="ub dl" onclick="askDelIssue('${it.id}')">✕</button></div></div>`;
+      });
+    });
+    html+='</div></div>';
+  });
+  const bar=`<div class="im-bar"><span>${q?`검색 결과 ${shown}건`:`카테고리 ${secs}개 · 가이드 ${shown}건`}</span>${q||imCat?'':'<span><button onclick="imAll(true)">모두 펼치기</button>·<button onclick="imAll(false)">모두 접기</button></span>'}</div>`;
+  box.innerHTML=bar+(html||'<div class="im-empty">검색 결과가 없습니다</div>');
+}
+
+function imToggle(k){if(imQuery.trim()||imCat)return;imOpen.has(k)?imOpen.delete(k):imOpen.add(k);renderIssueList();}
+function imPickCat(k){imCat=k;renderIssueManager();}
+function imCloseForm(){document.getElementById('issueFormWrap').style.display='none';const list=document.querySelector('#aIssues > .af');if(list){list.style.display='';list.scrollIntoView({block:'start'});}}
+// 여러 줄 입력칸 높이를 내용에 맞춤 (줄바꿈은 막고 자동 줄넘김만 허용)
+function taFit(el){if(el.value.includes('\n'))el.value=el.value.replace(/\s*\n\s*/g,' ');el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList();}
 
 function showIssueForm(editData){
   issueEditMode=!!editData;issueEditTitle=editData?editData.title:'';issueEditId=editData?(editData.id||''):'';
@@ -616,6 +669,7 @@ function showIssueForm(editData){
   const sub2ListOpts=allSub2s.map(s=>`<option value="${esc(s)}"></option>`).join('');
   const w=document.getElementById('issueFormWrap');
   w.style.display='block';
+  const list=document.querySelector('#aIssues > .af');if(list)list.style.display='none';
   w.innerHTML=`<div class="af"><h3>${editData?'✏️ 가이드 수정':'➕ 새 가이드 추가'}</h3>
     <div class="fr"><label>카테고리</label><select class="field" id="issCat" onchange="onCatChange()">${catOpts}${newCatOpt}</select></div>
     <div id="newCatFields" style="display:none">
@@ -640,19 +694,20 @@ function showIssueForm(editData){
     </div>
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
-    <div class="fr"><label>조치 1</label><input type="text" class="field" id="issS1" placeholder="첫번째 조치 방법" value="${editData?esc(editData.step1):''}"></div>
+    <div class="fr"><label>조치 1</label><textarea class="field field-ta" id="issS1" rows="1" placeholder="첫번째 조치 방법" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step1):''}</textarea></div>
     <div class="fr"><label>이미지 1 URL (선택)</label><input type="text" class="field" id="issI1" placeholder="Google Drive 공유 링크" value="${editData?esc(editData.img1):''}"></div>
-    <div class="fr"><label>조치 2</label><input type="text" class="field" id="issS2" value="${editData?esc(editData.step2):''}"></div>
+    <div class="fr"><label>조치 2</label><textarea class="field field-ta" id="issS2" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step2):''}</textarea></div>
     <div class="fr"><label>이미지 2 URL (선택)</label><input type="text" class="field" id="issI2" value="${editData?esc(editData.img2):''}"></div>
-    <div class="fr"><label>조치 3</label><input type="text" class="field" id="issS3" value="${editData?esc(editData.step3):''}"></div>
+    <div class="fr"><label>조치 3</label><textarea class="field field-ta" id="issS3" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step3):''}</textarea></div>
     <div class="fr"><label>이미지 3 URL (선택)</label><input type="text" class="field" id="issI3" value="${editData?esc(editData.img3):''}"></div>
-    <div class="fr"><label>조치 4</label><input type="text" class="field" id="issS4" value="${editData?esc(editData.step4):''}"></div>
+    <div class="fr"><label>조치 4</label><textarea class="field field-ta" id="issS4" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step4):''}</textarea></div>
     <div class="fr"><label>이미지 4 URL (선택)</label><input type="text" class="field" id="issI4" value="${editData?esc(editData.img4):''}"></div>
-    <div class="fr"><label>팁 (선택)</label><input type="text" class="field" id="issTip" placeholder="유용한 팁" value="${editData?esc(editData.tip):''}"></div>
+    <div class="fr"><label>팁 (선택)</label><textarea class="field field-ta" id="issTip" rows="1" placeholder="유용한 팁" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.tip):''}</textarea></div>
     <div class="fr"><label>첨부 PDF/문서 링크 <span style="font-size:10px;color:var(--tm)">(선택 · 내용이 길면 Google Drive 공유 링크)</span></label><input type="text" class="field" id="issDoc" placeholder="https://drive.google.com/file/d/..../view" value="${editData?esc(editData.doc_url||''):''}"></div>
-    <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="saveIssue()">${editData?'수정 저장':'추가하기'}</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="document.getElementById('issueFormWrap').style.display='none'">취소</button></div>
+    <div class="fb"><button class="btn-sm btn-p" style="flex:1" onclick="saveIssue()">${editData?'수정 저장':'추가하기'}</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="imCloseForm()">취소</button></div>
     <div class="err" id="issErr"></div></div>`;
-  w.scrollIntoView({behavior:'smooth'});
+  w.querySelectorAll('.field-ta').forEach(taFit);
+  w.scrollIntoView({block:'start'});
 }
 
 function onCatChange(){
