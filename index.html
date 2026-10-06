@@ -205,6 +205,21 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .cap-tip b{color:var(--ac)}
 .cap-tip kbd{display:inline-block;padding:0 5px;border:1px solid var(--bd);border-bottom-width:2px;border-radius:4px;background:var(--bgc);font-family:inherit;font-size:10px;line-height:16px}
 @media(hover:none){.cap-tip{display:none}}
+.ed-opt{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ts);margin:-4px 0 12px;cursor:pointer}
+.ed-opt b{color:var(--ac);font-weight:600}
+.ed-wrap{position:fixed;inset:0;z-index:300;background:rgba(10,10,20,.96);display:flex;flex-direction:column}
+.ed-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px;background:#1A1A2E;color:#fff}
+.ed-bar .ed-title{font-size:13px;font-weight:600;margin-right:auto}
+.ed-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;background:#12122B}
+.ed-b{height:34px;padding:0 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.ed-b.on{background:#4A6CF7;border-color:#4A6CF7}
+.ed-b.pri{background:#4A6CF7;border-color:#4A6CF7;font-weight:600}
+.ed-c{width:26px;height:26px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+.ed-c.on{border-color:#fff}
+.ed-sep{width:1px;height:22px;background:rgba(255,255,255,.18);margin:0 2px}
+.ed-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}
+.ed-stage canvas{max-width:100%;max-height:100%;touch-action:none;cursor:crosshair;box-shadow:0 4px 24px rgba(0,0,0,.4);background:#fff}
+.ed-hint{color:rgba(255,255,255,.55);font-size:11px;text-align:center;padding:0 12px 10px}
 .field-sm{padding:8px 12px;font-size:12px}
 .im-empty{text-align:center;font-size:12px;color:var(--tm);padding:24px 0}
 .cat-select-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
@@ -772,6 +787,7 @@ async function dzUpload(file,z){
   if(kind==='image'&&!/^image\//.test(file.type)){toast('⚠️ 이미지 파일만 넣을 수 있어요');return;}
   if(kind==='doc'&&file.type!=='application/pdf'){toast('⚠️ PDF 파일만 넣을 수 있어요');return;}
   if(kind==='doc'&&file.size>20*1024*1024){toast('⚠️ PDF는 20MB 이하만 올릴 수 있어요');return;}
+  if(kind==='image'&&file.type!=='image/gif'&&edOn()){const ed=await annotate(file);if(!ed)return;file=ed;}
   z.classList.add('busy');
   try{
     let data,mime=file.type,name=file.name||('capture_'+Date.now()+'.png');
@@ -862,6 +878,77 @@ async function restoreHist(i){
   toast(apiOk(res)?'✅ 되돌리기 완료':'⚠️ 되돌리기 실패 — 다시 시도하세요');
   renderHistory();
 }
+// ─── 이미지 표시하기 (점선 박스 · 화살표 · 번호) ───
+// 캡처 이미지에 "여기를 누르세요" 같은 표시를 그린 뒤 업로드한다. 여러 장이면 한 장씩 차례로 연다.
+function edOn(){try{return localStorage.getItem('pcg_edit_img')!=='0';}catch(e){return true;}}
+function edSet(on){try{localStorage.setItem('pcg_edit_img',on?'1':'0');}catch(e){}}
+let edQueue=Promise.resolve();
+function annotate(file){const job=edQueue.then(()=>openEditor(file));edQueue=job.catch(()=>{});return job;}
+function openEditor(file){
+  return new Promise(resolve=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onerror=()=>{URL.revokeObjectURL(url);toast('⚠️ 이미지를 읽을 수 없어요');resolve(null);};
+    img.onload=()=>{
+      // 너무 큰 이미지는 가로·세로 최대 2000px로 줄여서 편집
+      const k=Math.min(1,2000/Math.max(img.width,img.height)),W=Math.round(img.width*k),H=Math.round(img.height*k);
+      const COLORS=['#EF4444','#4A6CF7','#FACC15'];
+      let tool='rect',color=COLORS[0],shapes=[],draft=null;
+      const lw=Math.max(4,Math.round(Math.max(W,H)/200));
+      const wrap=document.createElement('div');wrap.className='ed-wrap';
+      wrap.innerHTML=`<div class="ed-bar"><span class="ed-title">✏️ 이미지에 표시하기</span><button class="ed-b" data-a="skip">그대로 올리기</button><button class="ed-b" data-a="cancel">취소</button><button class="ed-b pri" data-a="done">완료 · 올리기</button></div>
+        <div class="ed-tools"><button class="ed-b on" data-t="rect">▭ 점선 박스</button><button class="ed-b" data-t="arrow">➜ 화살표</button><button class="ed-b" data-t="num">① 번호</button><span class="ed-sep"></span>${COLORS.map((c,i)=>`<button class="ed-c ${i?'':'on'}" data-c="${c}" style="background:${c}" title="색"></button>`).join('')}<span class="ed-sep"></span><button class="ed-b" data-a="undo">↶ 되돌리기</button></div>
+        <div class="ed-stage"><canvas></canvas></div><div class="ed-hint">박스·화살표는 드래그, 번호는 누르면 1, 2, 3… 순서로 붙어요 · Ctrl+Z 되돌리기</div>`;
+      document.body.appendChild(wrap);
+      const cv=wrap.querySelector('canvas'),x=cv.getContext('2d');cv.width=W;cv.height=H;
+      const draw=()=>{
+        x.drawImage(img,0,0,W,H);
+        [...shapes,draft].filter(Boolean).forEach(s=>{
+          x.strokeStyle=x.fillStyle=s.color;x.lineWidth=lw;x.lineCap='round';x.lineJoin='round';
+          if(s.t==='rect'){x.setLineDash([lw*3,lw*2]);x.strokeRect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1));x.setLineDash([]);}
+          if(s.t==='arrow'){
+            const a=Math.atan2(s.y2-s.y1,s.x2-s.x1),hl=lw*5;
+            x.beginPath();x.moveTo(s.x1,s.y1);x.lineTo(s.x2-Math.cos(a)*hl*.6,s.y2-Math.sin(a)*hl*.6);x.stroke();
+            x.beginPath();x.moveTo(s.x2,s.y2);x.lineTo(s.x2-hl*Math.cos(a-.45),s.y2-hl*Math.sin(a-.45));x.lineTo(s.x2-hl*Math.cos(a+.45),s.y2-hl*Math.sin(a+.45));x.closePath();x.fill();
+          }
+          if(s.t==='num'){
+            const r=lw*4.5;x.beginPath();x.arc(s.x1,s.y1,r,0,Math.PI*2);x.fill();
+            x.fillStyle=s.color==='#FACC15'?'#1A1A2E':'#fff';x.font=`bold ${Math.round(r*1.25)}px sans-serif`;x.textAlign='center';x.textBaseline='middle';x.fillText(String(s.n),s.x1,s.y1+r*.06);
+          }
+        });
+      };
+      const pos=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};};
+      cv.addEventListener('pointerdown',e=>{
+        e.preventDefault();const p=pos(e);
+        if(tool==='num'){shapes.push({t:'num',x1:p.x,y1:p.y,color,n:shapes.filter(s=>s.t==='num').length+1});draw();return;}
+        cv.setPointerCapture(e.pointerId);draft={t:tool,x1:p.x,y1:p.y,x2:p.x,y2:p.y,color};
+      });
+      cv.addEventListener('pointermove',e=>{if(!draft)return;const p=pos(e);draft.x2=p.x;draft.y2=p.y;draw();});
+      cv.addEventListener('pointerup',()=>{if(!draft)return;if(Math.hypot(draft.x2-draft.x1,draft.y2-draft.y1)>lw*2)shapes.push(draft);draft=null;draw();});
+      const close=v=>{document.removeEventListener('keydown',onKey,true);wrap.remove();URL.revokeObjectURL(url);resolve(v);};
+      const finish=()=>cv.toBlob(b=>close(b?new File([b],(file.name||'capture').replace(/\.[^.]+$/,'')+'.png',{type:'image/png'}):file),'image/png');
+      const onKey=e=>{
+        if(e.key==='Escape'){e.preventDefault();close(null);}
+        else if(e.key==='Enter'){e.preventDefault();finish();}
+        else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();shapes.pop();draw();}
+        e.stopPropagation();
+      };
+      document.addEventListener('keydown',onKey,true);
+      wrap.addEventListener('click',e=>{
+        const b=e.target.closest('button');if(!b)return;
+        if(b.dataset.t){tool=b.dataset.t;wrap.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));}
+        if(b.dataset.c){color=b.dataset.c;wrap.querySelectorAll('[data-c]').forEach(x=>x.classList.toggle('on',x===b));}
+        const a=b.dataset.a;
+        if(a==='undo'){shapes.pop();draw();}
+        if(a==='cancel')close(null);
+        if(a==='skip')close(file);
+        if(a==='done')finish();
+      });
+      draw();
+    };
+    img.src=url;
+  });
+}
+
 function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList();}
 
 function showIssueForm(editData){
@@ -901,6 +988,7 @@ function showIssueForm(editData){
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
     <div class="cap-tip">📸 <b>캡처를 빠르게 넣는 방법</b><br>PC: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>로 영역 캡처 → 이 화면에서 <kbd>Ctrl</kbd>+<kbd>V</kbd>. 반복하면 이미지 1→2→3→4 칸에 차례로 들어가요.<br>여러 장을 한꺼번에 끌어다 놓거나 선택해도 순서대로 채워져요.</div>
+    <label class="ed-opt"><input type="checkbox" ${edOn()?'checked':''} onchange="edSet(this.checked)"> 이미지를 넣으면 <b>표시하기(점선 박스·화살표·번호)</b> 화면 먼저 열기</label>
     <div class="fr"><label>조치 1</label><textarea class="field field-ta" id="issS1" rows="1" placeholder="첫번째 조치 방법" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step1):''}</textarea></div>
     ${dzSlot('issI1','image','이미지 1 (선택)',editData?editData.img1:'')}
     <div class="fr"><label>조치 2</label><textarea class="field field-ta" id="issS2" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step2):''}</textarea></div>
