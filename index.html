@@ -201,6 +201,10 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .drop .drop-prev .dp-name a{color:var(--ac)}
 .drop.busy{pointer-events:none;opacity:.6}
 .drop.busy::after{content:'업로드 중...';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ac);background:var(--al);border-radius:var(--r)}
+.cap-tip{background:var(--al);color:var(--ts);border-radius:var(--r);padding:10px 12px;font-size:11px;line-height:1.7;margin:4px 0 12px}
+.cap-tip b{color:var(--ac)}
+.cap-tip kbd{display:inline-block;padding:0 5px;border:1px solid var(--bd);border-bottom-width:2px;border-radius:4px;background:var(--bgc);font-family:inherit;font-size:10px;line-height:16px}
+@media(hover:none){.cap-tip{display:none}}
 .field-sm{padding:8px 12px;font-size:12px}
 .im-empty{text-align:center;font-size:12px;color:var(--tm);padding:24px 0}
 .cat-select-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
@@ -724,10 +728,30 @@ function dzPreview(id){
 function dzClear(id){document.getElementById(id).value='';dzPreview(id);}
 function dzPick(z){
   const f=document.createElement('input');f.type='file';
-  f.accept=z.dataset.kind==='image'?'image/*':'application/pdf';
-  f.onchange=()=>{if(f.files[0])dzUpload(f.files[0],z);};f.click();
+  f.accept=z.dataset.kind==='image'?'image/*':'application/pdf';f.multiple=z.dataset.kind==='image';
+  f.onchange=()=>dzMulti([...f.files],z);f.click();
 }
-function dzDrop(e,z){e.preventDefault();z.classList.remove('over');const f=e.dataTransfer.files[0];if(f)dzUpload(f,z);}
+function dzDrop(e,z){e.preventDefault();e.stopPropagation();z.classList.remove('over');dzMulti([...e.dataTransfer.files],z);}
+// 이미지 여러 장: 고른 칸부터 시작해 그 뒤의 빈 이미지 칸에 차례로 넣는다 (z가 없으면 첫 빈 칸부터)
+function dzMulti(files,z){
+  if(!files.length)return;
+  if(z&&z.dataset.kind==='doc'){dzUpload(files[0],z);return;}
+  const imgs=files.filter(f=>/^image\//.test(f.type)),pdf=files.find(f=>f.type==='application/pdf');
+  const zones=[...document.querySelectorAll('#issueFormWrap .drop[data-kind="image"]')];
+  const empty=x=>!document.getElementById(x.dataset.target).value.trim();
+  const start=z?zones.indexOf(z):0;
+  const slots=zones.filter((x,i)=>i>=start&&(x===z||empty(x)));
+  const jobs=imgs.slice(0,slots.length).map((f,i)=>dzUpload(f,slots[i]));
+  if(pdf&&!z){const dz=dzZone('issDoc');if(dz)jobs.push(dzUpload(pdf,dz));}
+  if(imgs.length>slots.length)Promise.all(jobs).then(()=>toast(`⚠️ 빈 이미지 칸이 ${slots.length}개뿐이라 ${imgs.length-slots.length}장은 넣지 못했어요`));
+  if(!imgs.length&&!pdf)toast('⚠️ 이미지나 PDF 파일만 넣을 수 있어요');
+}
+// 수정 화면 아무 곳에나 파일을 놓아도 빈 칸에 차례로 채운다
+document.addEventListener('dragover',e=>{const w=document.getElementById('issueFormWrap');if(w&&w.style.display!=='none'&&w.contains(e.target))e.preventDefault();});
+document.addEventListener('drop',e=>{
+  const w=document.getElementById('issueFormWrap');if(!w||w.style.display==='none'||!w.contains(e.target)||e.target.closest('.drop'))return;
+  e.preventDefault();dzMulti([...e.dataTransfer.files],null);
+});
 function fileToB64(file){return new Promise((ok,ng)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ng;r.readAsDataURL(file);});}
 // 큰 사진은 가로·세로 최대 1600px JPEG로 줄여서 올린다 (업로드 시간·드라이브 용량 절약)
 function shrinkImage(file){
@@ -876,6 +900,7 @@ function showIssueForm(editData){
     </div>
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
+    <div class="cap-tip">📸 <b>캡처를 빠르게 넣는 방법</b><br>PC: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>로 영역 캡처 → 이 화면에서 <kbd>Ctrl</kbd>+<kbd>V</kbd>. 반복하면 이미지 1→2→3→4 칸에 차례로 들어가요.<br>여러 장을 한꺼번에 끌어다 놓거나 선택해도 순서대로 채워져요.</div>
     <div class="fr"><label>조치 1</label><textarea class="field field-ta" id="issS1" rows="1" placeholder="첫번째 조치 방법" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step1):''}</textarea></div>
     ${dzSlot('issI1','image','이미지 1 (선택)',editData?editData.img1:'')}
     <div class="fr"><label>조치 2</label><textarea class="field field-ta" id="issS2" rows="1" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step2):''}</textarea></div>
