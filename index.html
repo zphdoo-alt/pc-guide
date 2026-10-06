@@ -102,7 +102,27 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .step-img{width:100%;max-width:320px;border-radius:8px;margin-top:6px;border:1px solid var(--bd);cursor:pointer}
 .tip{background:var(--al);border-radius:8px;padding:7px 10px;margin-top:6px;font-size:11px;line-height:1.5;color:var(--ac);display:flex;gap:6px}
 .sr{display:none}.sr.active{display:block}
-.se{text-align:center;padding:50px 20px;color:var(--tm);font-size:13px}
+.se{text-align:center;padding:50px 20px;color:var(--tm);font-size:13px;line-height:1.7}
+.se small{font-size:11px}
+.loc{display:block;font-size:10px;font-weight:500;color:var(--tm);margin-bottom:2px}
+.fbk{margin-top:14px;padding-top:12px;border-top:1px dashed var(--bd);font-size:12px;color:var(--ts)}
+.fbk-q{display:block;margin-bottom:8px}
+.fbk-row{display:flex;gap:6px;flex-wrap:wrap}
+.fbk-b{flex:1;min-width:110px;padding:9px 10px;border:1.5px solid var(--bd);border-radius:8px;background:var(--bgc);color:var(--ts);font-size:12px;font-family:inherit;cursor:pointer}
+.fbk-b:hover{border-color:var(--ac);color:var(--ac)}
+.fbk-done{color:var(--ac);font-weight:500;line-height:1.6}
+.fbk textarea{width:100%;min-height:64px;resize:vertical;margin:0 0 6px;font-size:13px}
+.st-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px}
+.st-box{background:var(--bg);border-radius:var(--r);padding:10px 4px;text-align:center}
+.st-box b{display:block;font-size:18px;color:var(--tp)}
+.st-box span{font-size:10px;color:var(--tm)}
+.st-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:12px}
+.st-row:last-child{border-bottom:none}
+.st-row .st-t{flex:1;min-width:0;word-break:break-all}
+.st-row .st-t small{display:block;font-size:10px;color:var(--tm)}
+.st-n{font-size:11px;color:var(--tm);white-space:nowrap}
+.st-empty{font-size:12px;color:var(--tm);padding:10px 0;line-height:1.6}
+.st-sel{display:flex;gap:6px;margin-bottom:10px}
 .ap{display:none}.ap.active{display:block}
 .atabs{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .atabs::-webkit-scrollbar{display:none}
@@ -264,6 +284,8 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
       <button class="atab" onclick="aTab('depts',this)">부서 관리</button>
       <button class="atab" onclick="aTab('perms',this)">카테고리 권한</button>
       <button class="atab" onclick="aTab('catorder',this)">카테고리 순서</button>
+      <button class="atab" onclick="aTab('stats',this)">통계·피드백</button>
+      <button class="atab" onclick="aTab('history',this)">수정 이력</button>
     </div>
     <div id="aUsers"></div>
     <div id="aAddUser" style="display:none"></div>
@@ -271,6 +293,8 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
     <div id="aDepts" style="display:none"></div>
     <div id="aPerms" style="display:none"></div>
     <div id="aCatOrder" style="display:none"></div>
+    <div id="aStats" style="display:none"></div>
+    <div id="aHistory" style="display:none"></div>
   </div>
 
   <!-- PW Change -->
@@ -376,7 +400,7 @@ function buildDB(issues){
     const steps=[],imgs=[];
     for(let i=1;i<=4;i++){const st=String(row['step'+i]||'');if(st){steps.push(st);imgs.push(driveImgUrl(row['img'+i]||''));}}
     const tags=String(row.tags||'').split(',').map(x=>x.trim()).filter(Boolean);
-    DB[cat].items.push({id:String(row.id),subcat:String(row.subcat||''),subcat2:String(row.subcat2||''),subcat_icon:String(row.subcat_icon||''),title:String(row.title||''),severity:String(row.severity||'mid'),tags,steps,imgs,tip:String(row.tip||''),doc_url:String(row.doc_url||'')});
+    DB[cat].items.push({id:String(row.id),cat,subcat:String(row.subcat||''),subcat2:String(row.subcat2||''),subcat_icon:String(row.subcat_icon||''),title:String(row.title||''),severity:String(row.severity||'mid'),tags,steps,imgs,tip:String(row.tip||''),doc_url:String(row.doc_url||'')});
   });
   // cat_order 기준으로 카테고리 정렬(값 없는 건 뒤로, 원래 순서 유지)
   const keys=Object.keys(DB);
@@ -435,7 +459,9 @@ function renderCards(items,el,ck){
     const tip=it.tip?`<div class="tip"><span>💡</span><span>${esc(it.tip)}</span></div>`:'';
     const doc=it.doc_url?`<a href="${esc(it.doc_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:9px 14px;border:1.5px solid var(--ac);color:var(--ac);border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">📄 자세한 내용 PDF로 보기</a>`:'';
     const uid='i-'+(ck||'s')+'-'+i;
-    el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}"><div class="ih" onclick="tgl('${uid}')"><span class="nm">${esc(it.title)}</span><span class="ar">▼</span></div><div class="ib"><ul class="sli">${steps}</ul>${tip}${doc}</div></div>`;
+    const where=(!ck&&DB[it.cat])?`<span class="loc">${esc(DB[it.cat].icon)} ${esc(DB[it.cat].name)}${it.subcat?' › '+esc(it.subcat):''}</span>`:'';
+    const fbk=`<div class="fbk" onclick="event.stopPropagation()"><span class="fbk-q">이 가이드로 해결됐나요?</span><div class="fbk-row"><button class="fbk-b" onclick="fbYes(this)">👍 해결됐어요</button><button class="fbk-b" onclick="fbNo(this)">👎 아직이요</button></div></div>`;
+    el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}" data-k="${esc(it.cat||'')}" data-t="${esc(it.title)}"><div class="ih" onclick="tgl('${uid}')"><span class="nm">${where}${esc(it.title)}</span><span class="ar">▼</span></div><div class="ib"><ul class="sli">${steps}</ul>${tip}${doc}${fbk}</div></div>`;
   });
 }
 
@@ -514,21 +540,28 @@ function detBack(){
   else {goHome();}
 }
 function goHome(){curCat=null;curSub=null;curSub2=null;curView='';hideAll();document.getElementById('homeView').style.display='block';document.getElementById('statsBar').style.display='flex';document.getElementById('srchWrap').style.display='block';document.getElementById('sInput').value='';document.getElementById('sClear').classList.remove('show');initCats();scrollTo(0,0);}
-function tgl(id){const c=document.getElementById(id),o=c.classList.contains('open');document.querySelectorAll('.ic.open').forEach(x=>x.classList.remove('open'));if(!o)c.classList.add('open');}
+function tgl(id){const c=document.getElementById(id),o=c.classList.contains('open');document.querySelectorAll('.ic.open').forEach(x=>x.classList.remove('open'));if(!o){c.classList.add('open');logView(c);}}
 
-function doSearch(v){const cl=document.getElementById('sClear');if(!v.trim()){cl.classList.remove('show');goHome();return;}cl.classList.add('show');const q=v.toLowerCase(),res=[],allowed=getUserCats();Object.keys(DB).forEach(k=>{if(!allowed.includes(k)&&CU.role!=='admin')return;DB[k].items.forEach(it=>{if(it.title.toLowerCase().includes(q)||it.steps.some(st=>st.toLowerCase().includes(q)))res.push(it);});});hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('sView').classList.add('active');document.getElementById('sCnt').textContent=res.length+'건';const c=document.getElementById('sCards');if(!res.length)c.innerHTML=`<div class="se">"${esc(v)}" 검색 결과 없음</div>`;else renderCards(res,c,null);}
+function doSearch(v){const cl=document.getElementById('sClear');if(!v.trim()){cl.classList.remove('show');goHome();return;}cl.classList.add('show');const q=v.toLowerCase(),res=[],allowed=getUserCats();Object.keys(DB).forEach(k=>{if(!allowed.includes(k)&&CU.role!=='admin')return;DB[k].items.forEach(it=>{if(it.title.toLowerCase().includes(q)||it.steps.some(st=>st.toLowerCase().includes(q)))res.push(it);});});hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('sView').classList.add('active');document.getElementById('sCnt').textContent=res.length+'건';const c=document.getElementById('sCards');res.sort((a,b)=>(b.title.toLowerCase().includes(q))-(a.title.toLowerCase().includes(q)));
+  clearTimeout(missTimer);
+  if(!res.length){
+    c.innerHTML=`<div class="se">"${esc(v)}"에 맞는 가이드가 없어요<br><small>다른 단어로 검색해 보세요 (예: 프린터, VPN, 비밀번호)</small><br><button class="btn-sm btn-o" style="margin-top:14px;border-color:var(--ac);color:var(--ac)" onclick="reqGuide()">📝 이 내용으로 가이드 요청하기</button></div>`;
+    missTimer=setTimeout(()=>{if(document.getElementById('sInput').value.trim()===v.trim())logMiss(v.trim());},1500);
+  } else renderCards(res,c,null);}
 function clrSearch(){document.getElementById('sInput').value='';goHome();}
 
 // ADMIN
 function showAdmin(){hideAll();document.getElementById('adminPanel').classList.add('active');document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='none';aTab('users',document.querySelectorAll('.atab')[0]);}
 function hideAdmin(){goHome();}
-function aTab(tab,el){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['aUsers','aAddUser','aIssues','aDepts','aPerms','aCatOrder'].forEach(id=>document.getElementById(id).style.display='none');
+function aTab(tab,el){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['aUsers','aAddUser','aIssues','aDepts','aPerms','aCatOrder','aStats','aHistory'].forEach(id=>document.getElementById(id).style.display='none');
   if(tab==='users'){document.getElementById('aUsers').style.display='block';renderUserList();}
   else if(tab==='adduser'){document.getElementById('aAddUser').style.display='block';renderAddUser();}
   else if(tab==='issues'){document.getElementById('aIssues').style.display='block';renderIssueManager();}
   else if(tab==='depts'){document.getElementById('aDepts').style.display='block';renderDepts();}
   else if(tab==='perms'){document.getElementById('aPerms').style.display='block';renderPerms();}
   else if(tab==='catorder'){document.getElementById('aCatOrder').style.display='block';renderCatOrder();}
+  else if(tab==='stats'){document.getElementById('aStats').style.display='block';renderStats();}
+  else if(tab==='history'){document.getElementById('aHistory').style.display='block';renderHistory();}
 }
 
 function renderCatOrder(){
@@ -734,6 +767,77 @@ document.addEventListener('paste',e=>{
   if(!z){toast('⚠️ 이미지 칸 4개가 모두 차 있어요');return;}
   e.preventDefault();z.scrollIntoView({block:'center'});dzUpload(item.getAsFile(),z);
 });
+// ─── 이용 기록 · 피드백 ───
+// 관리자가 화면을 확인하며 연 가이드나 검색은 통계가 왜곡되지 않도록 기록하지 않는다.
+const viewed=new Set(),missed=new Set();let missTimer=null;
+function logEv(type,category,title,text){apiPost({action:'log',type,category:category||'',title:title||'',text:text||''});}
+function catName(k){return DB[k]?DB[k].name:k;}
+function logView(card){
+  if(!CU||CU.role==='admin')return;
+  const key=card.dataset.k+'|'+card.dataset.t;if(viewed.has(key))return;viewed.add(key);
+  logEv('view',catName(card.dataset.k),card.dataset.t);
+}
+function logMiss(q){if(!CU||CU.role==='admin'||q.length<2||missed.has(q))return;missed.add(q);logEv('miss','','',q);}
+function fbYes(btn){
+  const c=btn.closest('.ic');logEv('yes',catName(c.dataset.k),c.dataset.t);
+  btn.closest('.fbk').innerHTML='<div class="fbk-done">👍 해결돼서 다행이에요. 알려주셔서 감사해요!</div>';
+}
+function fbNo(btn){
+  btn.closest('.fbk').innerHTML=`<span class="fbk-q">어떤 부분이 안 됐는지 알려주세요 <small style="color:var(--tm)">(선택)</small></span><textarea class="field" placeholder="예: 2단계에서 설정 메뉴가 안 보여요"></textarea><button class="btn-sm btn-p" style="width:100%" onclick="fbSend(this)">관리자에게 보내기</button>`;
+}
+async function fbSend(btn){
+  const box=btn.closest('.fbk'),c=btn.closest('.ic'),txt=box.querySelector('textarea').value.trim();
+  btn.disabled=true;btn.textContent='보내는 중...';
+  const res=await apiPost({action:'log',type:'no',category:catName(c.dataset.k),title:c.dataset.t,text:txt});
+  box.innerHTML=apiOk(res)?'<div class="fbk-done">📨 관리자에게 전달됐어요. 가이드를 보완할게요.<br><small style="color:var(--tm)">급한 문제는 IT 담당자에게 직접 연락해 주세요.</small></div>':'<div class="fbk-done" style="color:var(--dg)">⚠️ 전달하지 못했어요. 잠시 후 다시 시도해 주세요.</div>';
+}
+async function reqGuide(){
+  const q=document.getElementById('sInput').value.trim();if(!q)return;
+  const res=await apiPost({action:'log',type:'request',text:q});
+  toast(apiOk(res)?'📨 가이드 요청이 관리자에게 전달됐어요':'⚠️ 요청하지 못했어요. 다시 시도해 주세요');
+}
+
+// ─── 관리자: 통계·피드백 ───
+let statDays=30;
+function fmtTime(ms){const d=new Date(ms);return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+async function renderStats(){
+  const el=document.getElementById('aStats');
+  el.innerHTML='<div class="af"><div class="st-empty">📡 통계를 불러오는 중...</div></div>';
+  const r=await apiPost({action:'getStats',days:statDays});
+  if(!apiOk(r)){el.innerHTML='<div class="af"><div class="st-empty">⚠️ 통계를 불러오지 못했어요. 다시 시도해 주세요.</div></div>';return;}
+  const sel=[7,30,90].map(d=>`<button class="im-chip ${d===statDays?'on':''}" onclick="statDays=${d};renderStats()">최근 ${d}일</button>`).join('');
+  const T=r.totals,rate=(T.yes+T.no)?Math.round(T.yes/(T.yes+T.no)*100)+'%':'-';
+  const none='<div class="st-empty">아직 기록이 없어요</div>';
+  let h=`<div class="af"><h3>📊 이용 통계</h3><div class="st-sel">${sel}</div>
+    <div class="st-grid"><div class="st-box"><b>${T.view}</b><span>가이드 열람</span></div><div class="st-box"><b>${rate}</b><span>해결률</span></div><div class="st-box"><b>${T.no}</b><span>해결 안 됨</span></div><div class="st-box"><b>${T.miss}</b><span>못 찾은 검색</span></div></div></div>`;
+  h+='<div class="af"><h3>🔥 많이 본 가이드</h3>'+(r.guides.length?r.guides.map((g,i)=>`<div class="st-row"><span class="st-n">${i+1}</span><div class="st-t">${esc(g.title)}<small>${esc(g.category)}</small></div><span class="st-n">👁 ${g.view} · 👍 ${g.yes} · 👎 ${g.no}</span></div>`).join(''):none)+'</div>';
+  h+='<div class="af"><h3>🔍 못 찾은 검색어 <small style="font-weight:400;color:var(--tm)">· 새 가이드 후보</small></h3>'+(r.misses.length?r.misses.map(m=>`<div class="st-row"><div class="st-t">"${esc(m.q)}"</div><span class="st-n">${m.n}회</span></div>`).join(''):none)+'</div>';
+  h+='<div class="af"><h3>📨 해결 안 됨 · 가이드 요청</h3>'+(r.feedback.length?r.feedback.map(f=>`<div class="st-row"><div class="st-t">${f.type==='request'?'📝 <b>가이드 요청</b>: "'+esc(f.text)+'"':'👎 '+esc(f.title)+(f.text?'<br><span style="color:var(--ts)">“'+esc(f.text)+'”</span>':'')}<small>${esc(f.user)} · ${fmtTime(f.time)}${f.category?' · '+esc(f.category):''}</small></div></div>`).join(''):none)+'</div>';
+  el.innerHTML=h;
+}
+
+// ─── 관리자: 수정 이력 · 되돌리기 ───
+let HIST=[];
+async function renderHistory(){
+  const el=document.getElementById('aHistory');
+  el.innerHTML='<div class="af"><div class="st-empty">📡 수정 이력을 불러오는 중...</div></div>';
+  const r=await apiPost({action:'getHistory'});
+  if(!apiOk(r)){el.innerHTML='<div class="af"><div class="st-empty">⚠️ 수정 이력을 불러오지 못했어요. 다시 시도해 주세요.</div></div>';return;}
+  HIST=r.items||[];
+  el.innerHTML='<div class="af"><h3>🕘 가이드 수정 이력</h3><div class="st-empty" style="padding-top:0">가이드를 수정하거나 삭제하기 <b>전</b> 내용이 저장돼요. 되돌리면 그 시점 내용으로 바뀌어요.</div>'+
+    (HIST.length?HIST.map((x,i)=>`<div class="st-row"><div class="st-t">${x.change==='삭제'?'🗑':'✏️'} ${esc(x.title)}<small>${esc(x.change)} · ${esc(x.user)} · ${fmtTime(x.time)}</small></div><button class="btn-sm btn-o" style="padding:6px 10px" onclick="restoreHist(${i})">되돌리기</button></div>`).join(''):'<div class="st-empty">아직 수정 이력이 없어요</div>')+'</div>';
+}
+async function restoreHist(i){
+  const x=HIST[i];if(!x||!x.row||!x.row.title)return;
+  if(!confirm(`"${x.title}" 가이드를 ${fmtTime(x.time)} ${x.change} 전 내용으로 되돌릴까요?\n지금 내용은 수정 이력에 남아요.`))return;
+  toast('📡 최신 데이터 확인 중...');await syncFromServer();
+  const row=Object.assign({},x.row);if(!row.id)row.id=genId();
+  RAW_ISSUES=RAW_ISSUES.filter(r=>!(String(r.category)===String(row.category)&&String(r.title)===String(row.title)));
+  RAW_ISSUES.push(row);s('raw_issues',RAW_ISSUES);buildDB(RAW_ISSUES);
+  const res=await apiPost({action:'updateIssues',rows:RAW_ISSUES});
+  toast(apiOk(res)?'✅ 되돌리기 완료':'⚠️ 되돌리기 실패 — 다시 시도하세요');
+  renderHistory();
+}
 function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList();}
 
 function showIssueForm(editData){
