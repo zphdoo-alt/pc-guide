@@ -84,9 +84,7 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .cc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:transform .12s;position:relative}
 .cc:active{transform:scale(.97)}
 .cc .ci{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px}
-.ci-l{font-size:17px;font-weight:700;font-family:inherit}
-.picon.ci-l{font-size:13px;width:18px;text-align:center}
-.cc .cn{font-size:13px;font-weight:600;margin-bottom:2px}
+.cc .cn{font-size:14px;font-weight:600;margin-bottom:4px;line-height:1.35}
 .cc .ct{font-size:11px;color:var(--tm)}
 .cc .cd{position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%}
 .cc.locked{opacity:.35;pointer-events:none}
@@ -378,8 +376,6 @@ function clrSess(){sessionStorage.removeItem('pcg_sess');}
 // 큰 분류 (재무 / 인사 / 지원). 카테고리마다 ISSUES 시트의 cat_group 칸에 id를 저장한다.
 const GROUPS=[{id:'finance',name:'재무',icon:'💰'},{id:'hr',name:'인사',icon:'👥'},{id:'support',name:'지원',icon:'🛠️'}];
 const DEF_GROUP='support';
-// 카테고리·소분류 이름의 첫 글자를 아이콘 대신 표시한다 (관리할 것 없음)
-function initial(name){const s=String(name||'').replace(/^[^0-9A-Za-z가-힣]+/,'');return esc((s||'?').charAt(0).toUpperCase());}
 function grpOf(id){return GROUPS.find(g=>g.id===id)||GROUPS.find(g=>g.id===DEF_GROUP);}
 let CU=null,delTgt=null,delType='',DB={},RAW_ISSUES=[];
 let curCat=null,curSub=null,curSub2=null,curView=''; // 현재 카테고리/소분류/소소분류, 현재 화면 단계
@@ -492,7 +488,7 @@ function initCats(){
   if(homeGroup!=='all'&&!GROUPS.some(g=>g.id===homeGroup))homeGroup='all';
   document.getElementById('grpTabs').innerHTML=`<button class="grp-tab ${homeGroup==='all'?'on':''}" onclick="setHomeGroup('all')">전체</button>`+
     GROUPS.map(g=>`<button class="grp-tab ${homeGroup===g.id?'on':''}" onclick="setHomeGroup('${g.id}')">${g.icon} ${esc(g.name)}<span>${cnt(g.id)}</span></button>`).join('');
-  const card=k=>{const c=DB[k],ok=allowed.includes(k);return `<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="ci ci-l" style="background:${c.color}1f;color:${c.color}">${initial(c.name)}</div><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;};
+  const card=k=>{const c=DB[k],ok=allowed.includes(k);return `<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;};
   const groups=homeGroup==='all'?GROUPS:GROUPS.filter(g=>g.id===homeGroup);
   grid.innerHTML=groups.map(g=>{
     const ks=keys.filter(k=>DB[k].group===g.id);
@@ -542,7 +538,7 @@ function renderTiles(c,title,sub,arr,handler){
   document.getElementById('dT').textContent=title;
   document.getElementById('dC').textContent=arr.length+'개 분류';
   let html='<div class="cg">';
-  arr.forEach((s,i)=>{html+=`<div class="cc an" style="animation-delay:${i*.03}s" onclick="${handler}(${i})"><div class="ci ci-l" style="background:${c.color}1f;color:${c.color}">${initial(s.name||'기타')}</div><div class="cn">${esc(s.name||'기타')}</div><div class="ct">${s.count}건</div></div>`;});
+  arr.forEach((s,i)=>{html+=`<div class="cc an" style="animation-delay:${i*.03}s" onclick="${handler}(${i})"><div class="cn">${esc(s.name||'기타')}</div><div class="ct">${s.count}건</div></div>`;});
   html+='</div>';
   document.getElementById('dCards').innerHTML=html;
   scrollTo(0,0);
@@ -689,7 +685,7 @@ function renderCatOrder(){
   if(!keys.length)html+='<p style="font-size:12px;color:var(--tm)">카테고리가 없습니다.</p>';
   keys.forEach((k,i)=>{
     const c=DB[k];
-    html+=`<div class="uc" style="margin-bottom:6px"><div class="ua" style="background:${c.color}18;color:${c.color}">${initial(c.name)}</div><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><select class="grp-sel" onchange="setCatGroup('${k}',this.value)">${GROUPS.map(g=>`<option value="${g.id}" ${c.group===g.id?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
+    html+=`<div class="uc" style="margin-bottom:6px"><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><select class="grp-sel" onchange="setCatGroup('${k}',this.value)">${GROUPS.map(g=>`<option value="${g.id}" ${c.group===g.id?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
   });
   html+='</div>';
   el.innerHTML=html;
@@ -1263,7 +1259,7 @@ function renderPerms(){
   });
   html+=`</div></div>`;
   // Individual categories
-  allCats.forEach(k=>{const c=DB[k];html+=`<div class="perm-row"><div class="perm-cat"><span class="picon ci-l" style="color:${c.color}">${initial(c.name)}</span>${esc(c.name)}</div><div class="perm-checks">`;depts.forEach(d=>{const on=(perms[d.id]||[]).includes(k);html+=`<span class="perm-chip ${on?'on':''}" onclick="tglPerm('${d.id}','${k}')">${esc(d.name)}</span>`;});html+=`</div></div>`;});
+  allCats.forEach(k=>{const c=DB[k];html+=`<div class="perm-row"><div class="perm-cat">${esc(c.name)}</div><div class="perm-checks">`;depts.forEach(d=>{const on=(perms[d.id]||[]).includes(k);html+=`<span class="perm-chip ${on?'on':''}" onclick="tglPerm('${d.id}','${k}')">${esc(d.name)}</span>`;});html+=`</div></div>`;});
   html+='</div></div>';el.innerHTML=html;
 }
 function tglPerm(deptId,catKey){
