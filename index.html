@@ -73,6 +73,12 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .chip b{color:var(--ac);font-weight:600}
 .content{padding:6px 16px 100px}
 .sec-t{font-size:14px;font-weight:600;margin:12px 0 8px;display:flex;align-items:center;gap:6px}
+.grp-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+.grp-tab{flex:1 0 auto;justify-content:center;display:flex;align-items:center;gap:4px;padding:8px 10px;border-radius:20px;border:1px solid var(--bd);background:var(--bgc);color:var(--ts);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer}
+.grp-tab span{font-size:10px;color:var(--tm);background:var(--bg);padding:1px 6px;border-radius:8px}
+.grp-tab.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.grp-tab.on span{background:rgba(255,255,255,.2);color:#fff}
+.grp-empty{font-size:12px;color:var(--tm);background:var(--bgc);border:1px dashed var(--bd);border-radius:var(--r);padding:16px;text-align:center;margin-bottom:8px}
 .sec-t .cnt{font-size:11px;font-weight:500;color:var(--tm);background:var(--al);padding:2px 7px;border-radius:8px}
 .cg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .cc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:transform .12s;position:relative}
@@ -181,6 +187,7 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .issue-card .ic-info{flex:1;min-width:0}
 .issue-card .ic-title{font-size:12px;font-weight:500}
 .issue-card .ic-meta{font-size:10px;color:var(--tm)}
+.grp-sel{border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--ts);font-size:11px;font-family:inherit;padding:5px 4px;margin-right:4px}
 .im-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:10px 0 8px;-webkit-overflow-scrolling:touch}
 .im-chip{flex-shrink:0;padding:6px 10px;border-radius:16px;border:1px solid var(--bd);background:var(--bgc);font-size:11px;color:var(--ts);cursor:pointer;white-space:nowrap;font-family:inherit}
 .im-chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
@@ -249,7 +256,7 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 <div class="login-wrap"><div class="login-card">
   <div class="login-icon">🏢</div>
   <h1>WIPS 헬프데스크</h1>
-  <p class="sub">사내 업무 가이드 & IT 지원 시스템</p>
+  <p class="sub">재무 · 인사 · 지원 문의를 한곳에서</p>
   <input type="text" class="field" id="loginId" placeholder="아이디" onkeydown="if(event.key==='Enter')doLogin()">
   <input type="password" class="field" id="loginPw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
   <button class="btn btn-p" id="loginBtn" onclick="doLogin()">로그인</button>
@@ -277,7 +284,7 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 <div class="srch-w" id="srchWrap">
   <div class="srch">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="sInput" placeholder="검색 (장애 증상, 업무 방법 등)" autocomplete="off" oninput="doSearch(this.value)" onkeydown="sugKey(event)" onfocus="sugShow(this.value)" onblur="setTimeout(sugHide,150)">
+    <input type="text" id="sInput" placeholder="검색 (궁금한 내용, 업무 방법, 장애 증상 등)" autocomplete="off" oninput="doSearch(this.value)" onkeydown="sugKey(event)" onfocus="sugShow(this.value)" onblur="setTimeout(sugHide,150)">
     <button class="sc" id="sClear" onclick="clrSearch()">✕</button>
   </div>
   <div class="sug" id="sSug"></div>
@@ -291,8 +298,8 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 <div class="content">
   <div class="sync-bar" id="syncBar">📡 서버에서 데이터 동기화 중...</div>
   <div id="homeView">
-    <div class="sec-t">카테고리</div>
-    <div class="cg" id="catGrid"></div>
+    <div class="grp-tabs" id="grpTabs"></div>
+    <div id="catGrid"></div>
   </div>
   <div class="det" id="detView">
     <div class="det-h"><button class="bk" onclick="detBack()">◀</button><div class="dt"><h2 id="dT"></h2><span id="dC"></span></div></div>
@@ -312,7 +319,7 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
       <button class="atab" onclick="aTab('issues',this)">가이드 관리</button>
       <button class="atab" onclick="aTab('depts',this)">부서 관리</button>
       <button class="atab" onclick="aTab('perms',this)">카테고리 권한</button>
-      <button class="atab" onclick="aTab('catorder',this)">카테고리 순서</button>
+      <button class="atab" onclick="aTab('catorder',this)">카테고리 순서·분류</button>
       <button class="atab" onclick="aTab('stats',this)">통계·피드백</button>
       <button class="atab" onclick="aTab('history',this)">수정 이력</button>
     </div>
@@ -366,6 +373,10 @@ function getSess(){try{return JSON.parse(sessionStorage.getItem('pcg_sess'));}ca
 function setSess(v){sessionStorage.setItem('pcg_sess',JSON.stringify(v));}
 function clrSess(){sessionStorage.removeItem('pcg_sess');}
 
+// 큰 분류 (재무 / 인사 / 지원). 카테고리마다 ISSUES 시트의 cat_group 칸에 id를 저장한다.
+const GROUPS=[{id:'finance',name:'재무',icon:'💰'},{id:'hr',name:'인사',icon:'👥'},{id:'support',name:'지원',icon:'🛠️'}];
+const DEF_GROUP='support';
+function grpOf(id){return GROUPS.find(g=>g.id===id)||GROUPS.find(g=>g.id===DEF_GROUP);}
 let CU=null,delTgt=null,delType='',DB={},RAW_ISSUES=[];
 let curCat=null,curSub=null,curSub2=null,curView=''; // 현재 카테고리/소분류/소소분류, 현재 화면 단계
 
@@ -422,7 +433,7 @@ function buildDB(issues){
   issues.forEach(row=>{
     if(!row.id)row.id=genId();
     const cat=String(row.category||'');if(!cat)return;
-    if(!DB[cat])DB[cat]={name:String(row.cat_name||cat),icon:String(row.cat_icon||'📁'),color:String(row.cat_color||'#9090A0'),order:null,items:[]};
+    if(!DB[cat])DB[cat]={name:String(row.cat_name||cat),icon:String(row.cat_icon||'📁'),color:String(row.cat_color||'#9090A0'),group:grpOf(String(row.cat_group||'')).id,order:null,items:[]};
     // 카테고리 순서: 행 중 하나라도 cat_order 값이 있으면 그 값을 사용
     const ov=row.cat_order;
     if(DB[cat].order==null&&ov!==''&&ov!=null&&!isNaN(Number(ov)))DB[cat].order=Number(ov);
@@ -467,11 +478,23 @@ function getUserCats(){if(!CU)return[];if(CU.role==='admin')return Object.keys(D
 const TL={HW:'하드웨어',SW:'소프트웨어',NET:'네트워크'};
 const TC={HW:'thw',SW:'tsw',NET:'tnt'};
 
+let homeGroup=(()=>{try{return localStorage.getItem('pcg_home_group')||'all';}catch(e){return 'all';}})();
+function setHomeGroup(g){homeGroup=g;try{localStorage.setItem('pcg_home_group',g);}catch(e){}initCats();}
 function initCats(){
-  const grid=document.getElementById('catGrid');grid.innerHTML='';const allowed=getUserCats();let total=0,access=0;
-  Object.keys(DB).forEach(k=>{const c=DB[k];total+=c.items.length;const ok=allowed.includes(k);if(ok)access+=c.items.length;
-    grid.innerHTML+=`<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="cd" style="background:${c.color}"></div><div class="ci" style="background:${c.color}15">${esc(c.icon)}</div><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;
-  });
+  const grid=document.getElementById('catGrid'),allowed=getUserCats();let total=0,access=0;
+  const keys=Object.keys(DB);
+  keys.forEach(k=>{total+=DB[k].items.length;if(allowed.includes(k))access+=DB[k].items.length;});
+  const cnt=g=>keys.filter(k=>DB[k].group===g&&allowed.includes(k)).reduce((n,k)=>n+DB[k].items.length,0);
+  if(homeGroup!=='all'&&!GROUPS.some(g=>g.id===homeGroup))homeGroup='all';
+  document.getElementById('grpTabs').innerHTML=`<button class="grp-tab ${homeGroup==='all'?'on':''}" onclick="setHomeGroup('all')">전체</button>`+
+    GROUPS.map(g=>`<button class="grp-tab ${homeGroup===g.id?'on':''}" onclick="setHomeGroup('${g.id}')">${g.icon} ${esc(g.name)}<span>${cnt(g.id)}</span></button>`).join('');
+  const card=k=>{const c=DB[k],ok=allowed.includes(k);return `<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="ci" style="background:${c.color}15">${esc(c.icon)}</div><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;};
+  const groups=homeGroup==='all'?GROUPS:GROUPS.filter(g=>g.id===homeGroup);
+  grid.innerHTML=groups.map(g=>{
+    const ks=keys.filter(k=>DB[k].group===g.id);
+    const body=ks.length?`<div class="cg">${ks.map(card).join('')}</div>`:`<div class="grp-empty">아직 등록된 ${esc(g.name)} 문의가 없어요</div>`;
+    return `<div class="sec-t">${g.icon} ${esc(g.name)}</div>${body}`;
+  }).join('');
   document.getElementById('totalCnt').textContent=total;document.getElementById('accessCnt').textContent=access;
 }
 
@@ -589,7 +612,7 @@ function doSearch(v){
   const c=document.getElementById('sCards');
   clearTimeout(missTimer);
   if(!res.length){
-    c.innerHTML=`<div class="se">"${esc(v)}"에 맞는 가이드가 없어요<br><small>다른 단어로 검색해 보세요 (예: 프린터, VPN, 비밀번호)</small><br><button class="btn-sm btn-o" style="margin-top:14px;border-color:var(--ac);color:var(--ac)" onclick="reqGuide()">📝 이 내용으로 가이드 요청하기</button></div>`;
+    c.innerHTML=`<div class="se">"${esc(v)}"에 맞는 가이드가 없어요<br><small>다른 단어로 검색해 보세요 (예: 연차, 법인카드, 프린터)</small><br><button class="btn-sm btn-o" style="margin-top:14px;border-color:var(--ac);color:var(--ac)" onclick="reqGuide()">📝 이 내용으로 가이드 요청하기</button></div>`;
     missTimer=setTimeout(()=>{if(document.getElementById('sInput').value.trim()===v.trim())logMiss(v.trim());},1500);
   } else renderCards(res,c,null);
 }
@@ -658,14 +681,21 @@ function aTab(tab,el){document.querySelectorAll('.atab').forEach(t=>t.classList.
 function renderCatOrder(){
   const el=document.getElementById('aCatOrder');
   const keys=Object.keys(DB);
-  let html='<div class="af"><h3>카테고리 순서</h3><p style="font-size:11px;color:var(--ts);margin-bottom:12px;line-height:1.5">▲▼ 버튼으로 홈 화면에 보이는 카테고리 순서를 바꿉니다.</p>';
+  let html='<div class="af"><h3>카테고리 순서 · 분류</h3><p style="font-size:11px;color:var(--ts);margin-bottom:12px;line-height:1.5">▲▼ 버튼으로 홈 화면에 보이는 순서를 바꾸고, 오른쪽 목록에서 큰 분류(재무·인사·지원)를 정합니다.</p>';
   if(!keys.length)html+='<p style="font-size:12px;color:var(--tm)">카테고리가 없습니다.</p>';
   keys.forEach((k,i)=>{
     const c=DB[k];
-    html+=`<div class="uc" style="margin-bottom:6px"><div class="ua" style="background:${c.color}18;color:${c.color}">${esc(c.icon)}</div><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
+    html+=`<div class="uc" style="margin-bottom:6px"><div class="ua" style="background:${c.color}18;color:${c.color}">${esc(c.icon)}</div><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><select class="grp-sel" onchange="setCatGroup('${k}',this.value)">${GROUPS.map(g=>`<option value="${g.id}" ${c.group===g.id?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
   });
   html+='</div>';
   el.innerHTML=html;
+}
+async function setCatGroup(k,g){
+  toast('📡 최신 데이터 확인 중...');await syncFromServer();
+  RAW_ISSUES.forEach(r=>{if(String(r.category)===String(k))r.cat_group=g;});
+  s('raw_issues',RAW_ISSUES);buildDB(RAW_ISSUES);renderCatOrder();
+  const res=await apiPost({action:'updateIssues',rows:RAW_ISSUES});
+  toast(apiOk(res)?'✅ '+(DB[k]?DB[k].name:'')+' → '+grpOf(g).name+'(으)로 이동':'⚠️ 분류 변경 — 서버 반영 실패, 다시 시도하세요');
 }
 async function moveCat(k,dir){
   await syncFromServer();
@@ -756,7 +786,7 @@ function renderIssueManager(){
   html+=`<div class="fb" style="margin-bottom:10px"><button class="btn-sm btn-p" style="flex:1" onclick="showIssueForm()">+ 새 가이드 추가</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="syncAndRefresh()">🔄 서버 동기화</button></div>`;
   html+=`<input type="text" class="field" id="imSearch" placeholder="🔍 제목·소분류·태그로 검색" value="${esc(imQuery)}" oninput="imQuery=this.value;renderIssueList()">`;
   html+=`<div class="im-chips"><button class="im-chip ${imCat?'':'on'}" onclick="imPickCat('')">전체 ${total}</button>`;
-  Object.keys(DB).forEach(k=>{const c=DB[k];html+=`<button class="im-chip ${imCat===k?'on':''}" onclick="imPickCat('${esc(k)}')">${esc(c.icon)} ${esc(c.name)} ${c.items.length}</button>`;});
+  GROUPS.forEach(g=>Object.keys(DB).filter(k=>DB[k].group===g.id).forEach(k=>{const c=DB[k];html+=`<button class="im-chip ${imCat===k?'on':''}" onclick="imPickCat('${esc(k)}')" title="${esc(g.name)}">${esc(c.icon)} ${esc(c.name)} ${c.items.length}</button>`;}));
   html+='</div><div id="imList"></div></div>';
   html+='<div id="issueFormWrap" style="display:none"></div>';
   el.innerHTML=html;
@@ -901,7 +931,7 @@ async function fbSend(btn){
   const box=btn.closest('.fbk'),c=btn.closest('.ic'),txt=box.querySelector('textarea').value.trim();
   btn.disabled=true;btn.textContent='보내는 중...';
   const res=await apiPost({action:'log',type:'no',category:catName(c.dataset.k),title:c.dataset.t,text:txt});
-  box.innerHTML=apiOk(res)?'<div class="fbk-done">📨 관리자에게 전달됐어요. 가이드를 보완할게요.<br><small style="color:var(--tm)">급한 문제는 IT 담당자에게 직접 연락해 주세요.</small></div>':'<div class="fbk-done" style="color:var(--dg)">⚠️ 전달하지 못했어요. 잠시 후 다시 시도해 주세요.</div>';
+  box.innerHTML=apiOk(res)?'<div class="fbk-done">📨 관리자에게 전달됐어요. 가이드를 보완할게요.<br><small style="color:var(--tm)">급한 문의는 담당 부서에 직접 연락해 주세요.</small></div>':'<div class="fbk-done" style="color:var(--dg)">⚠️ 전달하지 못했어요. 잠시 후 다시 시도해 주세요.</div>';
 }
 async function reqGuide(){
   const q=document.getElementById('sInput').value.trim();if(!q)return;
@@ -1051,7 +1081,7 @@ function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList(
 function showIssueForm(editData){
   issueEditMode=!!editData;issueEditTitle=editData?editData.title:'';issueEditId=editData?(editData.id||''):'';
   const cats=Object.keys(DB);
-  const catOpts=cats.map(k=>`<option value="${esc(k)}" ${editData&&editData.category===k?'selected':''}>${esc(DB[k].icon)} ${esc(DB[k].name)}</option>`).join('');
+  const catOpts=GROUPS.map(g=>{const ks=cats.filter(k=>DB[k].group===g.id);return ks.length?`<optgroup label="${g.icon} ${esc(g.name)}">${ks.map(k=>`<option value="${esc(k)}" ${editData&&editData.category===k?'selected':''}>${esc(DB[k].icon)} ${esc(DB[k].name)}</option>`).join('')}</optgroup>`:'';}).join('');
   const newCatOpt='<option value="__new__">➕ 새 카테고리</option>';
   const allSubs=[...new Set(cats.flatMap(k=>DB[k].items.map(it=>it.subcat).filter(Boolean)))];
   const subListOpts=allSubs.map(s=>`<option value="${esc(s)}"></option>`).join('');
@@ -1063,7 +1093,8 @@ function showIssueForm(editData){
   w.innerHTML=`<div class="af"><h3>${editData?'✏️ 가이드 수정':'➕ 새 가이드 추가'}</h3>
     <div class="fr"><label>카테고리</label><select class="field" id="issCat" onchange="onCatChange()">${catOpts}${newCatOpt}</select></div>
     <div id="newCatFields" style="display:none">
-      <div class="fr"><label>카테고리 이름</label><input type="text" class="field" id="newCatName" placeholder="예: 이메일, 회의실장비"></div>
+      <div class="fr"><label>큰 분류</label><select class="field" id="newCatGroup">${GROUPS.map(g=>`<option value="${g.id}" ${g.id===(homeGroup!=='all'?homeGroup:DEF_GROUP)?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select></div>
+      <div class="fr"><label>카테고리 이름</label><input type="text" class="field" id="newCatName" placeholder="예: 법인카드, 연차·휴가, 이메일"></div>
       <div class="fr"><label>아이콘 선택 <span style="font-size:10px;color:var(--tm)">(목록에서 선택하거나 아래에 직접 입력)</span></label>
         <div id="iconPicker" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${iconOpts('icon-opt','pickIcon')}</div>
         <input type="text" class="field" id="customIcon" placeholder="원하는 이모지를 직접 입력 가능" oninput="document.getElementById('newCatIcon').value=this.value" style="margin-top:6px">
@@ -1153,21 +1184,22 @@ async function saveIssue(){
   const s1=document.getElementById('issS1').value.trim();
   if(!title||!s1){er.textContent='제목과 조치1은 필수입니다.';er.classList.add('show');return;}
 
-  let catName='',catIcon='',catColor='';
+  let catName='',catIcon='',catColor='',catGroup=DEF_GROUP;
   if(cat==='__new__'){
     catName=document.getElementById('newCatName').value.trim();
     catIcon=document.getElementById('newCatIcon').value||'📁';
     catColor=document.getElementById('newCatColor').value||'#4A6CF7';
+    catGroup=document.getElementById('newCatGroup').value||DEF_GROUP;
     if(!catName){er.textContent='카테고리 이름을 입력하세요.';er.classList.add('show');return;}
     cat=catName.replace(/[^가-힣a-zA-Z0-9]/g,'').toLowerCase()+'_'+Date.now()%10000;
   } else {
-    if(DB[cat]){catName=DB[cat].name;catIcon=DB[cat].icon;catColor=DB[cat].color;}
+    if(DB[cat]){catName=DB[cat].name;catIcon=DB[cat].icon;catColor=DB[cat].color;catGroup=DB[cat].group;}
   }
   er.classList.remove('show');
 
   const newRow={
     id:issueEditMode&&issueEditId?issueEditId:genId(),
-    category:cat,cat_name:catName,cat_icon:catIcon,cat_color:catColor,
+    category:cat,cat_name:catName,cat_icon:catIcon,cat_color:catColor,cat_group:catGroup,
     cat_order:(DB[cat]&&DB[cat].order!=null)?DB[cat].order:'',
     subcat:document.getElementById('issSub').value.trim(),
     subcat2:document.getElementById('issSub2').value.trim(),
