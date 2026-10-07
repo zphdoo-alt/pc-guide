@@ -84,6 +84,8 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .cc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);padding:14px 12px;cursor:pointer;transition:transform .12s;position:relative}
 .cc:active{transform:scale(.97)}
 .cc .ci{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px}
+.ci-l{font-size:17px;font-weight:700;font-family:inherit}
+.picon.ci-l{font-size:13px;width:18px;text-align:center}
 .cc .cn{font-size:13px;font-weight:600;margin-bottom:2px}
 .cc .ct{font-size:11px;color:var(--tm)}
 .cc .cd{position:absolute;top:10px;right:10px;width:5px;height:5px;border-radius:50%}
@@ -376,6 +378,8 @@ function clrSess(){sessionStorage.removeItem('pcg_sess');}
 // 큰 분류 (재무 / 인사 / 지원). 카테고리마다 ISSUES 시트의 cat_group 칸에 id를 저장한다.
 const GROUPS=[{id:'finance',name:'재무',icon:'💰'},{id:'hr',name:'인사',icon:'👥'},{id:'support',name:'지원',icon:'🛠️'}];
 const DEF_GROUP='support';
+// 카테고리·소분류 이름의 첫 글자를 아이콘 대신 표시한다 (관리할 것 없음)
+function initial(name){const s=String(name||'').replace(/^[^0-9A-Za-z가-힣]+/,'');return esc((s||'?').charAt(0).toUpperCase());}
 function grpOf(id){return GROUPS.find(g=>g.id===id)||GROUPS.find(g=>g.id===DEF_GROUP);}
 let CU=null,delTgt=null,delType='',DB={},RAW_ISSUES=[];
 let curCat=null,curSub=null,curSub2=null,curView=''; // 현재 카테고리/소분류/소소분류, 현재 화면 단계
@@ -488,7 +492,7 @@ function initCats(){
   if(homeGroup!=='all'&&!GROUPS.some(g=>g.id===homeGroup))homeGroup='all';
   document.getElementById('grpTabs').innerHTML=`<button class="grp-tab ${homeGroup==='all'?'on':''}" onclick="setHomeGroup('all')">전체</button>`+
     GROUPS.map(g=>`<button class="grp-tab ${homeGroup===g.id?'on':''}" onclick="setHomeGroup('${g.id}')">${g.icon} ${esc(g.name)}<span>${cnt(g.id)}</span></button>`).join('');
-  const card=k=>{const c=DB[k],ok=allowed.includes(k);return `<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="ci" style="background:${c.color}15">${esc(c.icon)}</div><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;};
+  const card=k=>{const c=DB[k],ok=allowed.includes(k);return `<div class="cc an ${ok?'':'locked'}" ${ok?`onclick="showCat('${k}')"`:''}><div class="ci ci-l" style="background:${c.color}1f;color:${c.color}">${initial(c.name)}</div><div class="cn">${esc(c.name)}</div><div class="ct">${c.items.length}건</div></div>`;};
   const groups=homeGroup==='all'?GROUPS:GROUPS.filter(g=>g.id===homeGroup);
   grid.innerHTML=groups.map(g=>{
     const ks=keys.filter(k=>DB[k].group===g.id);
@@ -511,7 +515,7 @@ function renderCards(items,el,ck){
     const tip=it.tip?`<div class="tip"><span>💡</span><span>${esc(it.tip)}</span></div>`:'';
     const doc=it.doc_url?`<a href="${esc(it.doc_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:9px 14px;border:1.5px solid var(--ac);color:var(--ac);border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">📄 자세한 내용 PDF로 보기</a>`:'';
     const uid='i-'+(ck||'s')+'-'+i;
-    const where=(!ck&&DB[it.cat])?`<span class="loc">${esc(DB[it.cat].icon)} ${esc(DB[it.cat].name)}${it.subcat?' › '+esc(it.subcat):''}</span>`:'';
+    const where=(!ck&&DB[it.cat])?`<span class="loc">${esc(DB[it.cat].name)}${it.subcat?' › '+esc(it.subcat):''}</span>`:'';
     const fbk=`<div class="fbk" onclick="event.stopPropagation()"><span class="fbk-q">이 가이드로 해결됐나요?</span><div class="fbk-row"><button class="fbk-b" onclick="fbYes(this)">👍 해결됐어요</button><button class="fbk-b" onclick="fbNo(this)">👎 아직이요</button></div></div>`;
     el.innerHTML+=`<div class="ic an" style="animation-delay:${i*.03}s" id="${uid}" data-k="${esc(it.cat||'')}" data-t="${esc(it.title)}"><div class="ih" onclick="tgl('${uid}')"><span class="nm">${where}${esc(it.title)}</span><span class="ar">▼</span></div><div class="ib"><ul class="sli">${steps}</ul>${tip}${doc}${fbk}</div></div>`;
   });
@@ -538,7 +542,7 @@ function renderTiles(c,title,sub,arr,handler){
   document.getElementById('dT').textContent=title;
   document.getElementById('dC').textContent=arr.length+'개 분류';
   let html='<div class="cg">';
-  arr.forEach((s,i)=>{const ic=s.icon||c.icon;html+=`<div class="cc an" style="animation-delay:${i*.03}s" onclick="${handler}(${i})"><div class="cd" style="background:${c.color}"></div><div class="ci" style="background:${c.color}15">${esc(ic)}</div><div class="cn">${esc(s.name||'기타')}</div><div class="ct">${s.count}건</div></div>`;});
+  arr.forEach((s,i)=>{html+=`<div class="cc an" style="animation-delay:${i*.03}s" onclick="${handler}(${i})"><div class="ci ci-l" style="background:${c.color}1f;color:${c.color}">${initial(s.name||'기타')}</div><div class="cn">${esc(s.name||'기타')}</div><div class="ct">${s.count}건</div></div>`;});
   html+='</div>';
   document.getElementById('dCards').innerHTML=html;
   scrollTo(0,0);
@@ -550,7 +554,7 @@ function showCat(k){
   const subs=getSubs(k);
   if(!subs.some(s=>s.name!=='')){showItems(k,null,null);return;}
   curView='sublist';
-  renderTiles(c,c.icon+' '+c.name,null,subs,'openSub');
+  renderTiles(c,c.name,null,subs,'openSub');
 }
 // 2단계: 소분류 선택 → 소소분류 목록 (없으면 항목 바로)
 function openSub(i){
@@ -561,7 +565,7 @@ function openSub(i){
 }
 function renderSub2(cat,sub){
   const c=DB[cat];if(!c)return;curCat=cat;curSub=sub;curSub2=null;curView='sub2list';
-  renderTiles(c,c.icon+' '+c.name+' › '+(sub||'기타'),sub,getSub2s(cat,sub),'openSub2');
+  renderTiles(c,c.name+' › '+(sub||'기타'),sub,getSub2s(cat,sub),'openSub2');
 }
 // 3단계: 소소분류 선택 → 항목
 function openSub2(i){const sub2s=getSub2s(curCat,curSub);if(sub2s[i])showItems(curCat,curSub,sub2s[i].name);}
@@ -575,7 +579,7 @@ function showItems(cat,sub,sub2){
   else items=c.items.filter(it=>(it.subcat||'')===sub&&(it.subcat2||'')===sub2);
   hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='block';
   document.getElementById('detView').classList.add('active');
-  let t=c.icon+' '+c.name;if(sub!==null)t+=' › '+(sub||'기타');if(sub2!==null)t+=' › '+(sub2||'기타');
+  let t=c.name;if(sub!==null)t+=' › '+(sub||'기타');if(sub2!==null)t+=' › '+(sub2||'기타');
   document.getElementById('dT').textContent=t;
   document.getElementById('dC').textContent=items.length+'건';
   renderCards(items,document.getElementById('dCards'),cat);
@@ -635,7 +639,7 @@ function sugShow(v){
     SUG.sort((a,b)=>b.score-a.score||a.text.length-b.text.length);SUG=SUG.slice(0,6);
   }
   if(!SUG.length){box.classList.remove('show');box.innerHTML='';return;}
-  box.innerHTML=SUG.map((s,i)=>`<div class="sug-i" data-i="${i}" onmousedown="event.preventDefault();sugPick(${i})"><span class="sug-ic">${s.via?'💬':'📄'}</span><span class="sug-t">${sugMark(s.text,v)}${s.via?`<small>→ ${esc(s.title)}</small>`:`<small>${esc(DB[s.cat]?DB[s.cat].icon+' '+DB[s.cat].name:'')}</small>`}</span></div>`).join('');
+  box.innerHTML=SUG.map((s,i)=>`<div class="sug-i" data-i="${i}" onmousedown="event.preventDefault();sugPick(${i})"><span class="sug-ic">${s.via?'💬':'📄'}</span><span class="sug-t">${sugMark(s.text,v)}${s.via?`<small>→ ${esc(s.title)}</small>`:`<small>${esc(DB[s.cat]?DB[s.cat].name:'')}</small>`}</span></div>`).join('');
   box.classList.add('show');
 }
 // 입력한 글자 부분을 굵게 (띄어쓰기는 무시하고 찾음)
@@ -685,7 +689,7 @@ function renderCatOrder(){
   if(!keys.length)html+='<p style="font-size:12px;color:var(--tm)">카테고리가 없습니다.</p>';
   keys.forEach((k,i)=>{
     const c=DB[k];
-    html+=`<div class="uc" style="margin-bottom:6px"><div class="ua" style="background:${c.color}18;color:${c.color}">${esc(c.icon)}</div><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><select class="grp-sel" onchange="setCatGroup('${k}',this.value)">${GROUPS.map(g=>`<option value="${g.id}" ${c.group===g.id?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
+    html+=`<div class="uc" style="margin-bottom:6px"><div class="ua" style="background:${c.color}18;color:${c.color}">${initial(c.name)}</div><div class="ui"><div class="un" style="font-size:13px">${esc(c.name)}</div><div class="uid">${c.items.length}건</div></div><select class="grp-sel" onchange="setCatGroup('${k}',this.value)">${GROUPS.map(g=>`<option value="${g.id}" ${c.group===g.id?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select><div class="uact"><button class="ub" onclick="moveCat('${k}',-1)" ${i===0?'style="opacity:.25"':''}>▲</button><button class="ub" onclick="moveCat('${k}',1)" ${i===keys.length-1?'style="opacity:.25"':''}>▼</button></div></div>`;
   });
   html+='</div>';
   el.innerHTML=html;
@@ -786,7 +790,7 @@ function renderIssueManager(){
   html+=`<div class="fb" style="margin-bottom:10px"><button class="btn-sm btn-p" style="flex:1" onclick="showIssueForm()">+ 새 가이드 추가</button><button class="btn-sm btn-o" style="flex:1;border:1px solid var(--bd)" onclick="syncAndRefresh()">🔄 서버 동기화</button></div>`;
   html+=`<input type="text" class="field" id="imSearch" placeholder="🔍 제목·소분류·태그로 검색" value="${esc(imQuery)}" oninput="imQuery=this.value;renderIssueList()">`;
   html+=`<div class="im-chips"><button class="im-chip ${imCat?'':'on'}" onclick="imPickCat('')">전체 ${total}</button>`;
-  GROUPS.forEach(g=>Object.keys(DB).filter(k=>DB[k].group===g.id).forEach(k=>{const c=DB[k];html+=`<button class="im-chip ${imCat===k?'on':''}" onclick="imPickCat('${esc(k)}')" title="${esc(g.name)}">${esc(c.icon)} ${esc(c.name)} ${c.items.length}</button>`;}));
+  GROUPS.forEach(g=>Object.keys(DB).filter(k=>DB[k].group===g.id).forEach(k=>{const c=DB[k];html+=`<button class="im-chip ${imCat===k?'on':''}" onclick="imPickCat('${esc(k)}')" title="${esc(g.name)}">${esc(c.name)} ${c.items.length}</button>`;}));
   html+='</div><div id="imList"></div></div>';
   html+='<div id="issueFormWrap" style="display:none"></div>';
   el.innerHTML=html;
@@ -808,7 +812,7 @@ function renderIssueList(){
     // 소분류별로 묶기
     const groups={},order=[];
     items.forEach(it=>{const s=it.subcat||'';if(!(s in groups)){groups[s]=[];order.push(s);}groups[s].push(it);});
-    html+=`<div class="im-sec ${open?'open':''}"><div class="im-head" onclick="imToggle('${esc(k)}')"><span class="im-ar">▶</span><span>${esc(c.icon)}</span><span class="im-name">${esc(c.name)}</span><span class="im-cnt">${items.length}건</span></div><div class="im-body">`;
+    html+=`<div class="im-sec ${open?'open':''}"><div class="im-head" onclick="imToggle('${esc(k)}')"><span class="im-ar">▶</span><span class="im-name">${esc(c.name)}</span><span class="im-cnt">${items.length}건</span></div><div class="im-body">`;
     order.forEach(s=>{
       if(order.length>1||s)html+=`<div class="im-sub">📂 ${esc(s||'기타')} <span>${groups[s].length}</span></div>`;
       groups[s].forEach(it=>{
@@ -966,7 +970,7 @@ function missLinkOpen(btn,i){
   // 비슷해 보이는 가이드를 위로
   const opts=Object.keys(DB).flatMap(k=>DB[k].items.map(it=>({k,it,s:srScore(it,q.split(/\s+/)[0])})))
     .sort((a,b)=>b.s-a.s||a.it.title.localeCompare(b.it.title));
-  box.innerHTML=`<div style="display:flex;gap:6px;margin-top:8px"><select class="field" style="margin:0;flex:1;font-size:12px;padding:8px 10px">${opts.map(o=>`<option value="${esc(o.k)}|${esc(o.it.title)}">${esc(DB[o.k].icon)} ${esc(o.it.title)}</option>`).join('')}</select><button class="btn-sm btn-p" onclick="missLink(this,${i})">추가</button></div>`;
+  box.innerHTML=`<div style="display:flex;gap:6px;margin-top:8px"><select class="field" style="margin:0;flex:1;font-size:12px;padding:8px 10px">${opts.map(o=>`<option value="${esc(o.k)}|${esc(o.it.title)}">[${esc(DB[o.k].name)}] ${esc(o.it.title)}</option>`).join('')}</select><button class="btn-sm btn-p" onclick="missLink(this,${i})">추가</button></div>`;
   box.style.display='block';
 }
 async function missLink(btn,i){
@@ -1081,7 +1085,7 @@ function imAll(on){imOpen=on?new Set(Object.keys(DB)):new Set();renderIssueList(
 function showIssueForm(editData){
   issueEditMode=!!editData;issueEditTitle=editData?editData.title:'';issueEditId=editData?(editData.id||''):'';
   const cats=Object.keys(DB);
-  const catOpts=GROUPS.map(g=>{const ks=cats.filter(k=>DB[k].group===g.id);return ks.length?`<optgroup label="${g.icon} ${esc(g.name)}">${ks.map(k=>`<option value="${esc(k)}" ${editData&&editData.category===k?'selected':''}>${esc(DB[k].icon)} ${esc(DB[k].name)}</option>`).join('')}</optgroup>`:'';}).join('');
+  const catOpts=GROUPS.map(g=>{const ks=cats.filter(k=>DB[k].group===g.id);return ks.length?`<optgroup label="${g.icon} ${esc(g.name)}">${ks.map(k=>`<option value="${esc(k)}" ${editData&&editData.category===k?'selected':''}>${esc(DB[k].name)}</option>`).join('')}</optgroup>`:'';}).join('');
   const newCatOpt='<option value="__new__">➕ 새 카테고리</option>';
   const allSubs=[...new Set(cats.flatMap(k=>DB[k].items.map(it=>it.subcat).filter(Boolean)))];
   const subListOpts=allSubs.map(s=>`<option value="${esc(s)}"></option>`).join('');
@@ -1095,23 +1099,14 @@ function showIssueForm(editData){
     <div id="newCatFields" style="display:none">
       <div class="fr"><label>큰 분류</label><select class="field" id="newCatGroup">${GROUPS.map(g=>`<option value="${g.id}" ${g.id===(homeGroup!=='all'?homeGroup:DEF_GROUP)?'selected':''}>${g.icon} ${esc(g.name)}</option>`).join('')}</select></div>
       <div class="fr"><label>카테고리 이름</label><input type="text" class="field" id="newCatName" placeholder="예: 법인카드, 연차·휴가, 이메일"></div>
-      <div class="fr"><label>아이콘 선택 <span style="font-size:10px;color:var(--tm)">(목록에서 선택하거나 아래에 직접 입력)</span></label>
-        <div id="iconPicker" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${iconOpts('icon-opt','pickIcon')}</div>
-        <input type="text" class="field" id="customIcon" placeholder="원하는 이모지를 직접 입력 가능" oninput="document.getElementById('newCatIcon').value=this.value" style="margin-top:6px">
-        <input type="hidden" id="newCatIcon" value="📁">
-      </div>
+      <input type="hidden" id="newCatIcon" value="">
       <div class="fr"><label>색상 선택</label>
         <div id="colorPicker" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${['#4A6CF7','#3B82F6','#1D4ED8','#06B6D4','#0891B2','#10B981','#059669','#14B8A6','#84CC16','#22C55E','#8B5CF6','#7C3AED','#6366F1','#A855F7','#EC4899','#DB2777','#EF4444','#DC2626','#F97316','#EA580C','#F59E0B','#D97706','#78716C','#64748B'].map(c=>`<span class="color-opt" onclick="pickColor(this,'${c}')" style="width:30px;height:30px;border-radius:8px;background:${c};cursor:pointer;border:2.5px solid transparent"></span>`).join('')}</div>
         <input type="hidden" id="newCatColor" value="#4A6CF7">
       </div>
     </div>
     <div class="fr"><label>소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 비워두면 분류 없음)</span></label><input type="text" class="field" id="issSub" list="subList" placeholder="예: 잉크/토너, 용지걸림" value="${editData?esc(editData.subcat||''):''}"><datalist id="subList">${subListOpts}</datalist></div>
-    <div class="fr"><label>소분류 아이콘 <span style="font-size:10px;color:var(--tm)">(선택 · 비우면 카테고리 아이콘)</span></label>
-      <input type="text" class="field" id="issSubIcon" placeholder="아래에서 선택 (또는 직접 입력)" value="${editData?esc(editData.subcat_icon||''):''}">
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;max-height:118px;overflow-y:auto;border:1px solid var(--bd);border-radius:8px;padding:6px">
-        <span onclick="clearSubIcon()" style="height:34px;display:flex;align-items:center;padding:0 10px;border-radius:8px;border:1.5px solid var(--bd);cursor:pointer;font-size:12px;color:var(--ts)">없음</span>
-        ${iconOpts('sub-icon-opt','pickSubIcon')}
-      </div>
+    <input type="hidden" id="issSubIcon" value="${editData?esc(editData.subcat_icon||''):''}">
     </div>
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
@@ -1138,20 +1133,6 @@ function showIssueForm(editData){
 function onCatChange(){
   const v=document.getElementById('issCat').value;
   document.getElementById('newCatFields').style.display=v==='__new__'?'block':'none';
-}
-const ICON_LIST=['🖥️','💻','🖨️','⌨️','🖱️','🖲️','🕹️','🎮','📱','☎️','📞','📟','📠','🔌','🔋','💽','💾','💿','📀','🧮','📺','📷','📸','📹','🎥','🎙️','🎚️','🎛️','🎧','🔊','🔉','🔈','🔇','📢','📣','💡','🔦','🔆','🌐','📡','📶','📨','📩','📤','📥','📬','📭','✉️','📧','💬','🗨️','🔗','🆔','🔒','🔓','🔐','🔑','🗝️','🛡️','🚨','🪪','👤','👥','📋','📝','✏️','🖊️','🖋️','🗒️','📄','📃','📑','📊','📈','📉','📅','📆','🗓️','📌','📍','📎','🖇️','🏷️','🗂️','📂','📁','🗃️','🗄️','📚','📰','🧾','💼','✂️','📕','📗','📘','📙','📓','📔','📒','🔤','🔠','🔡','✍️','📇','🤝','🧩','📲','🔣','⚙️','🔧','🛠️','🧰','🪛','🔩','🧪','🌡️','⚡','🔥','❄️','💨','☁️','⏰','⌛','⏳','🔔','🔄','♻️','✅','⚠️','❓','❗','📦','🚀','🔭','🔬','🧲','💎','🟦','🏢','🏬','🏭','🚪','🪟','🧯','🚧','💳','💰','🏦','💵','💴','💶','💷','🪙','💱','💲','💸','🏧','⚖️','👔','🎓','🏆','🧍','🪑','🗣️'];
-function iconOpts(cls,fn){return ICON_LIST.map(ic=>`<span class="${cls}" onclick="${fn}(this)" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1.5px solid var(--bd);cursor:pointer;font-size:16px">${ic}</span>`).join('');}
-function pickSubIcon(el){
-  document.querySelectorAll('.sub-icon-opt').forEach(x=>{x.style.borderColor='var(--bd)';x.style.background='';});
-  el.style.borderColor='var(--ac)';el.style.background='var(--al)';
-  document.getElementById('issSubIcon').value=el.textContent;
-}
-function clearSubIcon(){document.querySelectorAll('.sub-icon-opt').forEach(x=>{x.style.borderColor='var(--bd)';x.style.background='';});document.getElementById('issSubIcon').value='';}
-function pickIcon(el){
-  document.querySelectorAll('.icon-opt').forEach(x=>{x.style.borderColor='var(--bd)';x.style.background='';});
-  el.style.borderColor='var(--ac)';el.style.background='var(--al)';
-  document.getElementById('newCatIcon').value=el.textContent;
-  const ci=document.getElementById('customIcon');if(ci)ci.value='';
 }
 function pickColor(el,c){
   document.querySelectorAll('.color-opt').forEach(x=>x.style.borderColor='transparent');
@@ -1187,7 +1168,7 @@ async function saveIssue(){
   let catName='',catIcon='',catColor='',catGroup=DEF_GROUP;
   if(cat==='__new__'){
     catName=document.getElementById('newCatName').value.trim();
-    catIcon=document.getElementById('newCatIcon').value||'📁';
+    catIcon='';
     catColor=document.getElementById('newCatColor').value||'#4A6CF7';
     catGroup=document.getElementById('newCatGroup').value||DEF_GROUP;
     if(!catName){er.textContent='카테고리 이름을 입력하세요.';er.classList.add('show');return;}
@@ -1282,7 +1263,7 @@ function renderPerms(){
   });
   html+=`</div></div>`;
   // Individual categories
-  allCats.forEach(k=>{const c=DB[k];html+=`<div class="perm-row"><div class="perm-cat"><span class="picon">${esc(c.icon)}</span>${esc(c.name)}</div><div class="perm-checks">`;depts.forEach(d=>{const on=(perms[d.id]||[]).includes(k);html+=`<span class="perm-chip ${on?'on':''}" onclick="tglPerm('${d.id}','${k}')">${esc(d.name)}</span>`;});html+=`</div></div>`;});
+  allCats.forEach(k=>{const c=DB[k];html+=`<div class="perm-row"><div class="perm-cat"><span class="picon ci-l" style="color:${c.color}">${initial(c.name)}</span>${esc(c.name)}</div><div class="perm-checks">`;depts.forEach(d=>{const on=(perms[d.id]||[]).includes(k);html+=`<span class="perm-chip ${on?'on':''}" onclick="tglPerm('${d.id}','${k}')">${esc(d.name)}</span>`;});html+=`</div></div>`;});
   html+='</div></div>';el.innerHTML=html;
 }
 function tglPerm(deptId,catKey){
