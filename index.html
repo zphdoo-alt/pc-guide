@@ -53,6 +53,15 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 .u-pill{font-size:10px;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);padding:2px 8px;border-radius:14px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dept-pill{font-size:9px;color:rgba(255,255,255,.4);background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px}
 .srch-w{padding:0 16px;margin-top:-8px;position:relative;z-index:10}
+.sug{display:none;position:absolute;left:16px;right:16px;top:calc(100% + 4px);background:var(--bgc);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;z-index:20}
+.sug.show{display:block}
+.sug-i{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--bd)}
+.sug-i:last-child{border-bottom:none}
+.sug-i:hover,.sug-i.on{background:var(--al)}
+.sug-ic{font-size:14px;flex-shrink:0}
+.sug-t{flex:1;min-width:0;font-size:13px;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug-t b{color:var(--ac)}
+.sug-t small{display:block;font-size:10px;color:var(--tm);overflow:hidden;text-overflow:ellipsis}
 .srch{background:var(--bgc);border-radius:var(--r);box-shadow:var(--sh);display:flex;align-items:center;padding:0 14px;border:1.5px solid transparent}
 .srch:focus-within{border-color:var(--ac)}
 .srch svg{flex-shrink:0;color:var(--tm);width:16px;height:16px}
@@ -268,9 +277,10 @@ html,body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--b
 <div class="srch-w" id="srchWrap">
   <div class="srch">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="sInput" placeholder="검색 (장애 증상, 업무 방법 등)" oninput="doSearch(this.value)">
+    <input type="text" id="sInput" placeholder="검색 (장애 증상, 업무 방법 등)" autocomplete="off" oninput="doSearch(this.value)" onkeydown="sugKey(event)" onfocus="sugShow(this.value)" onblur="setTimeout(sugHide,150)">
     <button class="sc" id="sClear" onclick="clrSearch()">✕</button>
   </div>
+  <div class="sug" id="sSug"></div>
 </div>
 
 <div class="stats" id="statsBar">
@@ -561,13 +571,75 @@ function detBack(){
 function goHome(){curCat=null;curSub=null;curSub2=null;curView='';hideAll();document.getElementById('homeView').style.display='block';document.getElementById('statsBar').style.display='flex';document.getElementById('srchWrap').style.display='block';document.getElementById('sInput').value='';document.getElementById('sClear').classList.remove('show');initCats();scrollTo(0,0);}
 function tgl(id){const c=document.getElementById(id),o=c.classList.contains('open');document.querySelectorAll('.ic.open').forEach(x=>x.classList.remove('open'));if(!o){c.classList.add('open');logView(c);}}
 
-function doSearch(v){const cl=document.getElementById('sClear');if(!v.trim()){cl.classList.remove('show');goHome();return;}cl.classList.add('show');const q=v.toLowerCase(),res=[],allowed=getUserCats();Object.keys(DB).forEach(k=>{if(!allowed.includes(k)&&CU.role!=='admin')return;DB[k].items.forEach(it=>{if(it.title.toLowerCase().includes(q)||it.steps.some(st=>st.toLowerCase().includes(q)))res.push(it);});});hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('sView').classList.add('active');document.getElementById('sCnt').textContent=res.length+'건';const c=document.getElementById('sCards');res.sort((a,b)=>(b.title.toLowerCase().includes(q))-(a.title.toLowerCase().includes(q)));
+function srNorm(s){return String(s||'').toLowerCase().replace(/\s+/g,'');}
+function srScore(it,q){
+  const n=srNorm(q);if(!n)return 0;
+  if(srNorm(it.title).includes(n))return 3;
+  if(it.tags.some(g=>srNorm(g).includes(n)))return 2;
+  if(it.steps.some(st=>srNorm(st).includes(n))||srNorm(it.tip).includes(n))return 1;
+  return 0;
+}
+function srItems(){const allowed=getUserCats();return Object.keys(DB).filter(k=>CU.role==='admin'||allowed.includes(k)).flatMap(k=>DB[k].items);}
+function doSearch(v){
+  const cl=document.getElementById('sClear');sugShow(v);
+  if(!v.trim()){cl.classList.remove('show');goHome();return;}
+  cl.classList.add('show');
+  const res=srItems().map(it=>({it,s:srScore(it,v)})).filter(x=>x.s).sort((a,b)=>b.s-a.s).map(x=>x.it);
+  hideAll();document.getElementById('statsBar').style.display='none';document.getElementById('sView').classList.add('active');document.getElementById('sCnt').textContent=res.length+'건';
+  const c=document.getElementById('sCards');
   clearTimeout(missTimer);
   if(!res.length){
     c.innerHTML=`<div class="se">"${esc(v)}"에 맞는 가이드가 없어요<br><small>다른 단어로 검색해 보세요 (예: 프린터, VPN, 비밀번호)</small><br><button class="btn-sm btn-o" style="margin-top:14px;border-color:var(--ac);color:var(--ac)" onclick="reqGuide()">📝 이 내용으로 가이드 요청하기</button></div>`;
     missTimer=setTimeout(()=>{if(document.getElementById('sInput').value.trim()===v.trim())logMiss(v.trim());},1500);
-  } else renderCards(res,c,null);}
-function clrSearch(){document.getElementById('sInput').value='';goHome();}
+  } else renderCards(res,c,null);
+}
+
+// ─── 연관 검색어 ───
+// 입력한 글자가 들어간 가이드 제목과 "비슷한 문의"를 검색창 아래에 보여주고, 누르면 그 가이드를 바로 연다.
+let SUG=[],sugIdx=-1;
+function sugShow(v){
+  const box=document.getElementById('sSug');if(!box)return;
+  const n=srNorm(v);SUG=[];sugIdx=-1;
+  if(n){
+    const seen=new Set();
+    srItems().forEach(it=>{
+      [[it.title,null],...it.tags.map(g=>[g,it.title])].forEach(([text,via])=>{
+        const tn=srNorm(text),pos=tn.indexOf(n);if(pos<0||tn===n&&!via)return;
+        const key=text+'|'+it.title;if(seen.has(key))return;seen.add(key);
+        SUG.push({text,via,title:it.title,cat:it.cat,score:(pos===0?2:1)+(via?0:.5)});
+      });
+    });
+    SUG.sort((a,b)=>b.score-a.score||a.text.length-b.text.length);SUG=SUG.slice(0,6);
+  }
+  if(!SUG.length){box.classList.remove('show');box.innerHTML='';return;}
+  box.innerHTML=SUG.map((s,i)=>`<div class="sug-i" data-i="${i}" onmousedown="event.preventDefault();sugPick(${i})"><span class="sug-ic">${s.via?'💬':'📄'}</span><span class="sug-t">${sugMark(s.text,v)}${s.via?`<small>→ ${esc(s.title)}</small>`:`<small>${esc(DB[s.cat]?DB[s.cat].icon+' '+DB[s.cat].name:'')}</small>`}</span></div>`).join('');
+  box.classList.add('show');
+}
+// 입력한 글자 부분을 굵게 (띄어쓰기는 무시하고 찾음)
+function sugMark(text,v){
+  const n=srNorm(v),chars=[...text];let idx=[],acc='';
+  chars.forEach((ch,i)=>{if(!/\s/.test(ch)){idx.push(i);acc+=ch.toLowerCase();}});
+  const p=acc.indexOf(n);if(p<0)return esc(text);
+  const a=idx[p],b=idx[p+n.length-1];
+  return esc(chars.slice(0,a).join(''))+'<b>'+esc(chars.slice(a,b+1).join(''))+'</b>'+esc(chars.slice(b+1).join(''));
+}
+function sugHide(){const box=document.getElementById('sSug');if(box)box.classList.remove('show');sugIdx=-1;}
+function sugPick(i){
+  const s=SUG[i];if(!s)return;
+  const inp=document.getElementById('sInput');inp.value=s.text;sugHide();inp.blur();
+  doSearch(s.text);sugHide();
+  const card=[...document.querySelectorAll('#sCards .ic')].find(c=>c.dataset.t===s.title&&c.dataset.k===s.cat);
+  if(card){if(!card.classList.contains('open'))tgl(card.id);card.scrollIntoView({block:'start',behavior:'smooth'});}
+}
+function sugKey(e){
+  const box=document.getElementById('sSug');if(!box||!box.classList.contains('show'))return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();sugIdx=(sugIdx+(e.key==='ArrowDown'?1:-1)+SUG.length)%SUG.length;
+    box.querySelectorAll('.sug-i').forEach((x,i)=>x.classList.toggle('on',i===sugIdx));
+  } else if(e.key==='Enter'&&sugIdx>=0){e.preventDefault();sugPick(sugIdx);}
+  else if(e.key==='Escape')sugHide();
+}
+function clrSearch(){document.getElementById('sInput').value='';sugHide();goHome();}
 
 // ADMIN
 function showAdmin(){hideAll();document.getElementById('adminPanel').classList.add('active');document.getElementById('statsBar').style.display='none';document.getElementById('srchWrap').style.display='none';aTab('users',document.querySelectorAll('.atab')[0]);}
@@ -846,14 +918,39 @@ async function renderStats(){
   const r=await apiPost({action:'getStats',days:statDays});
   if(!apiOk(r)){el.innerHTML='<div class="af"><div class="st-empty">⚠️ 통계를 불러오지 못했어요. 다시 시도해 주세요.</div></div>';return;}
   const sel=[7,30,90].map(d=>`<button class="im-chip ${d===statDays?'on':''}" onclick="statDays=${d};renderStats()">최근 ${d}일</button>`).join('');
-  const T=r.totals,rate=(T.yes+T.no)?Math.round(T.yes/(T.yes+T.no)*100)+'%':'-';
+  MISSES=r.misses;const T=r.totals,rate=(T.yes+T.no)?Math.round(T.yes/(T.yes+T.no)*100)+'%':'-';
   const none='<div class="st-empty">아직 기록이 없어요</div>';
   let h=`<div class="af"><h3>📊 이용 통계</h3><div class="st-sel">${sel}</div>
     <div class="st-grid"><div class="st-box"><b>${T.view}</b><span>가이드 열람</span></div><div class="st-box"><b>${rate}</b><span>해결률</span></div><div class="st-box"><b>${T.no}</b><span>해결 안 됨</span></div><div class="st-box"><b>${T.miss}</b><span>못 찾은 검색</span></div></div></div>`;
   h+='<div class="af"><h3>🔥 많이 본 가이드</h3>'+(r.guides.length?r.guides.map((g,i)=>`<div class="st-row"><span class="st-n">${i+1}</span><div class="st-t">${esc(g.title)}<small>${esc(g.category)}</small></div><span class="st-n">👁 ${g.view} · 👍 ${g.yes} · 👎 ${g.no}</span></div>`).join(''):none)+'</div>';
-  h+='<div class="af"><h3>🔍 못 찾은 검색어 <small style="font-weight:400;color:var(--tm)">· 새 가이드 후보</small></h3>'+(r.misses.length?r.misses.map(m=>`<div class="st-row"><div class="st-t">"${esc(m.q)}"</div><span class="st-n">${m.n}회</span></div>`).join(''):none)+'</div>';
+  h+='<div class="af"><h3>🔍 못 찾은 검색어 <small style="font-weight:400;color:var(--tm)">· 가이드에 연결하면 다음부터 검색돼요</small></h3>'+(r.misses.length?r.misses.map((m,i)=>`<div class="st-row" style="flex-wrap:wrap"><div class="st-t">"${esc(m.q)}"</div><span class="st-n">${m.n}회</span><button class="btn-sm btn-o" style="padding:6px 10px" onclick="missLinkOpen(this,${i})">가이드에 연결</button><div class="miss-link" style="display:none;width:100%"></div></div>`).join(''):none)+'</div>';
   h+='<div class="af"><h3>📨 해결 안 됨 · 가이드 요청</h3>'+(r.feedback.length?r.feedback.map(f=>`<div class="st-row"><div class="st-t">${f.type==='request'?'📝 <b>가이드 요청</b>: "'+esc(f.text)+'"':'👎 '+esc(f.title)+(f.text?'<br><span style="color:var(--ts)">“'+esc(f.text)+'”</span>':'')}<small>${esc(f.user)} · ${fmtTime(f.time)}${f.category?' · '+esc(f.category):''}</small></div></div>`).join(''):none)+'</div>';
   el.innerHTML=h;
+}
+
+let MISSES=[];
+function missLinkOpen(btn,i){
+  const box=btn.parentElement.querySelector('.miss-link');
+  if(box.style.display!=='none'){box.style.display='none';return;}
+  const q=MISSES[i].q;
+  // 비슷해 보이는 가이드를 위로
+  const opts=Object.keys(DB).flatMap(k=>DB[k].items.map(it=>({k,it,s:srScore(it,q.split(/\s+/)[0])})))
+    .sort((a,b)=>b.s-a.s||a.it.title.localeCompare(b.it.title));
+  box.innerHTML=`<div style="display:flex;gap:6px;margin-top:8px"><select class="field" style="margin:0;flex:1;font-size:12px;padding:8px 10px">${opts.map(o=>`<option value="${esc(o.k)}|${esc(o.it.title)}">${esc(DB[o.k].icon)} ${esc(o.it.title)}</option>`).join('')}</select><button class="btn-sm btn-p" onclick="missLink(this,${i})">추가</button></div>`;
+  box.style.display='block';
+}
+async function missLink(btn,i){
+  const q=MISSES[i].q,[cat,...rest]=btn.previousElementSibling.value.split('|'),title=rest.join('|');
+  btn.disabled=true;btn.textContent='저장 중...';
+  await syncFromServer();
+  const row=RAW_ISSUES.find(r=>String(r.category)===cat&&String(r.title)===title);
+  if(!row){toast('⚠️ 가이드를 찾지 못했어요. 새로고침 후 다시 시도하세요');btn.disabled=false;btn.textContent='추가';return;}
+  const tags=String(row.tags||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!tags.some(g=>srNorm(g)===srNorm(q)))tags.push(q);
+  row.tags=tags.join(', ');s('raw_issues',RAW_ISSUES);buildDB(RAW_ISSUES);
+  const res=await apiPost({action:'updateIssues',rows:RAW_ISSUES});
+  if(apiOk(res)){btn.closest('.miss-link').innerHTML=`<div class="fbk-done" style="margin-top:6px">✅ "${esc(title)}"의 비슷한 문의에 추가했어요</div>`;}
+  else{toast('⚠️ 저장 실패 — 다시 시도하세요');btn.disabled=false;btn.textContent='추가';}
 }
 
 // ─── 관리자: 수정 이력 · 되돌리기 ───
@@ -987,6 +1084,7 @@ function showIssueForm(editData){
     </div>
     <div class="fr"><label>소소분류 <span style="font-size:10px;color:var(--tm)">(선택 · 소분류 안의 더 작은 분류)</span></label><input type="text" class="field" id="issSub2" list="sub2List" placeholder="예: 흑백, 컬러" value="${editData?esc(editData.subcat2||''):''}"><datalist id="sub2List">${sub2ListOpts}</datalist></div>
     <div class="fr"><label>제목</label><input type="text" class="field" id="issTitle" placeholder="프린터 인쇄가 안 됨" value="${editData?esc(editData.title):''}"></div>
+    <div class="fr"><label>비슷한 문의·검색어 <span style="font-size:10px;color:var(--tm)">(선택 · 쉼표로 구분 · 직원들이 실제로 쓰는 표현)</span></label><input type="text" class="field" id="issTags" placeholder="예: 인터넷 안돼요, 랜선 연결 안됨, 네트워크 끊김" value="${editData?esc(editData.tags||''):''}"></div>
     <div class="cap-tip">📸 <b>캡처를 빠르게 넣는 방법</b><br>PC: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>로 영역 캡처 → 이 화면에서 <kbd>Ctrl</kbd>+<kbd>V</kbd>. 반복하면 이미지 1→2→3→4 칸에 차례로 들어가요.<br>여러 장을 한꺼번에 끌어다 놓거나 선택해도 순서대로 채워져요.</div>
     <label class="ed-opt"><input type="checkbox" ${edOn()?'checked':''} onchange="edSet(this.checked)"> 이미지를 넣으면 <b>표시하기(점선 박스·화살표·번호)</b> 화면 먼저 열기</label>
     <div class="fr"><label>조치 1</label><textarea class="field field-ta" id="issS1" rows="1" placeholder="첫번째 조치 방법" onkeydown="if(event.key==='Enter')event.preventDefault()" oninput="taFit(this)">${editData?esc(editData.step1):''}</textarea></div>
@@ -1075,6 +1173,7 @@ async function saveIssue(){
     subcat2:document.getElementById('issSub2').value.trim(),
     subcat_icon:document.getElementById('issSubIcon').value.trim(),
     title,
+    tags:document.getElementById('issTags').value.split(',').map(x=>x.trim()).filter(Boolean).join(', '),
     step1:s1,img1:document.getElementById('issI1').value.trim(),
     step2:document.getElementById('issS2').value.trim(),img2:document.getElementById('issI2').value.trim(),
     step3:document.getElementById('issS3').value.trim(),img3:document.getElementById('issI3').value.trim(),
